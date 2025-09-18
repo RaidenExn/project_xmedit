@@ -1,0 +1,36 @@
+# Miscellaneous
+*.class
+*.lock
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+appcode.project.xcworkspace/
+
+# Generated binaries
+app.dSYM/
+DerivedData/
+
+# Don't ignore pubspec.lock for applications
+# This ensures that you have a reproducible build with consistent dependency versions.
+!pubspec.lock
