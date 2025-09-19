@@ -31,6 +31,4 @@ appcode.project.xcworkspace/
 app.dSYM/
 DerivedData/
 
-# Don't ignore pubspec.lock for applications
-# This ensures that you have a reproducible build with consistent dependency versions.
 !pubspec.lock
