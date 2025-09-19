@@ -50,6 +50,7 @@ class ContractData {
 }
 
 class ActivityData {
+  String stateId = const Uuid().v4(); // Unique ID for state management
   String? id;
   String? start;
   String? type;
@@ -61,6 +62,23 @@ class ActivityData {
   String? copay;
   bool isDeleted = false;
   List<Map<String, String>> observations = [];
+
+  ActivityData();
+
+  ActivityData.clone(ActivityData other)
+      : stateId = other.stateId,
+        id = other.id,
+        start = other.start,
+        type = other.type,
+        code = other.code,
+        quantity = other.quantity,
+        net = other.net,
+        clinician = other.clinician,
+        priorAuthorizationID = other.priorAuthorizationID,
+        copay = other.copay,
+        isDeleted = other.isDeleted,
+        observations = List<Map<String, String>>.from(
+            other.observations.map((e) => Map<String, String>.from(e)));
 }
 
 class ClaimData {
@@ -308,8 +326,6 @@ class XmlHandler {
         _buildElement('Clinician', activity.clinician),
         if (activity.priorAuthorizationID != null)
           _buildElement('PriorAuthorizationID', activity.priorAuthorizationID),
-        // The line below was removed to prevent adding the <Copay> tag
-        // if (activity.copay != null) _buildElement('Copay', activity.copay),
       ];
       for (final obs in activity.observations) {
         activityChildren.add(XmlElement(XmlName('Observation'), [], [
