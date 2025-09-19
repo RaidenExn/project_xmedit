@@ -6,12 +6,16 @@ class ClaimDataSection extends StatelessWidget {
   final String title;
   final Widget child;
   final bool canStretch;
+  final IconData? titleIcon;
+  final List<Widget>? actions;
 
   const ClaimDataSection({
     super.key,
     required this.title,
     required this.child,
     this.canStretch = false,
+    this.titleIcon,
+    this.actions,
   });
 
   @override
@@ -31,11 +35,32 @@ class ClaimDataSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
             color: colors.surfaceContainer,
-            child: Text(
-              title,
-              style: textStyles.titleSmall,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (titleIcon != null) ...[
+                      Icon(titleIcon,
+                          size: 16, color: textStyles.titleSmall?.color),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      title,
+                      style: textStyles.titleSmall,
+                    ),
+                  ],
+                ),
+                if (actions != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: actions!,
+                  )
+              ],
             ),
           ),
           Padding(
@@ -47,7 +72,6 @@ class ClaimDataSection extends StatelessWidget {
     );
   }
 }
-
 
 class DataFieldWithCopy extends StatelessWidget {
   final String label;
@@ -76,7 +100,7 @@ class DataFieldWithCopy extends StatelessWidget {
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min, // This is the key change
+        mainAxisSize: MainAxisSize.min,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +157,6 @@ class SimpleDataField extends StatelessWidget {
     );
   }
 }
-
 
 class WindowButtons extends StatelessWidget {
   const WindowButtons({super.key});

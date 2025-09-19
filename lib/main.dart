@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:project_xmedit/home_page.dart'; // This is the required import
+import 'package:project_xmedit/home_page.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Add these two lines for desktop database support
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
+
   await windowManager.ensureInitialized();
 
   const windowOptions = WindowOptions(
@@ -28,16 +34,14 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => ClaimDataNotifier()),
-        ChangeNotifierProvider(create: (context) => ThemeNotifier()),
-        ChangeNotifierProvider(create: (context) => CardVisibilityNotifier()),
-      ],
-      child: const AppContent(),
-    );
-  }
+  Widget build(BuildContext context) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => ClaimDataNotifier()),
+          ChangeNotifierProvider(create: (context) => ThemeNotifier()),
+          ChangeNotifierProvider(create: (context) => CardVisibilityNotifier()),
+        ],
+        child: const AppContent(),
+      );
 }
 
 class AppContent extends StatelessWidget {
