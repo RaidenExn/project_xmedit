@@ -393,7 +393,7 @@ class _DiagnosisDataRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final description = notifier.icd10Descriptions[diag.code] ?? 'N/A';
     final textStyle = TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface);
-    final String? principalId = notifier.claimData!.diagnoses
+    final String principalId = notifier.claimData!.diagnoses
         .firstWhere((d) => d.type == 'Principal', orElse: () => notifier.claimData!.diagnoses.first)
         .id;
     return Container(
