@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
@@ -70,7 +72,7 @@ class CardVisibilityNotifier extends ChangeNotifier {
 
   final Map<String, bool> _visibilities = {
     'details': true,
-    'controls & totals': true,
+    'resubmission & totals': true,
     'activities': true,
     'diagnosis': true,
   };
@@ -116,6 +118,8 @@ class ClaimDataNotifier extends ChangeNotifier {
   Map<String, String> _cptDescriptions = {};
   bool isDiagnosisEditingEnabled = false;
 
+  bool transferOnDelete = false;
+
   final TextEditingController grossController = TextEditingController();
   final TextEditingController patientShareController = TextEditingController();
   final TextEditingController netController = TextEditingController();
@@ -156,22 +160,18 @@ class ClaimDataNotifier extends ChangeNotifier {
   }
 
   void _updateControllers() {
-    // Hold references to the old controllers
     final oldNetControllers = activityNetControllers;
     final oldCopayControllers = activityCopayControllers;
     final oldDslCodeControllers = activityDslCodeControllers;
 
-    // Immediately create and assign new empty lists
     activityNetControllers = [];
     activityCopayControllers = [];
     activityDslCodeControllers = {};
 
-    // Remove listeners from permanent controllers
     grossController.removeListener(_onControllerChanged);
     patientShareController.removeListener(_onControllerChanged);
     netController.removeListener(_onControllerChanged);
-    
-    // Dispose the old controllers safely
+
     for (final c in [...oldNetControllers, ...oldCopayControllers]) {
       c.removeListener(_onControllerChanged);
       c.dispose();
@@ -191,16 +191,23 @@ class ClaimDataNotifier extends ChangeNotifier {
       _originalPatientShare =
           double.tryParse(_claimData!.patientShare ?? '0') ?? 0.0;
       originalResubmissionType = _claimData!.resubmission?.type;
-      
-      const resubmissionOptions = ["correction", "internal complaint", "reconciliation"];
+
+      const resubmissionOptions = [
+        "correction",
+        "internal complaint",
+        "reconciliation"
+      ];
       final currentType = _claimData!.resubmission?.type;
       if (currentType == null || !resubmissionOptions.contains(currentType)) {
-        (_claimData!.resubmission ??= ResubmissionData()).type = 'internal complaint';
+        (_claimData!.resubmission ??= ResubmissionData()).type =
+            'internal complaint';
       }
 
       for (final activity in _claimData!.activities) {
-        activityNetControllers.add(TextEditingController(text: activity.net ?? '0.00'));
-        activityCopayControllers.add(TextEditingController(text: activity.copay ?? '0.00'));
+        activityNetControllers
+            .add(TextEditingController(text: activity.net ?? '0.00'));
+        activityCopayControllers
+            .add(TextEditingController(text: activity.copay ?? '0.00'));
 
         if (activity.type == '8') {
           final controller = TextEditingController(text: activity.code ?? '');
@@ -246,13 +253,15 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void _checkNetBalance() {
     if (_claimData == null) return;
-    final totalNetFromActivities = Iterable.generate(_claimData!.activities.length)
-        .where((i) => !_claimData!.activities[i].isDeleted)
-        .map((i) => double.tryParse(activityNetControllers[i].text) ?? 0.0)
-        .fold(0.0, (prev, val) => prev + val);
+    final totalNetFromActivities =
+        Iterable.generate(_claimData!.activities.length)
+            .where((i) => !_claimData!.activities[i].isDeleted)
+            .map((i) => double.tryParse(activityNetControllers[i].text) ?? 0.0)
+            .fold(0.0, (prev, val) => prev + val);
     final declaredNet = double.tryParse(netController.text) ?? 0.0;
     final diff = declaredNet - totalNetFromActivities;
-    netDifference = (diff.abs() > 0.001) ? "(Δ ${diff.toStringAsFixed(2)})" : "";
+    netDifference =
+        (diff.abs() > 0.001) ? "(Δ ${diff.toStringAsFixed(2)})" : "";
   }
 
   void _checkAllBalances() => _checkNetBalance();
@@ -260,15 +269,31 @@ class ClaimDataNotifier extends ChangeNotifier {
   Future<void> loadXmlFile() async {
     _setLoading(true);
     try {
-      final result = await _xmlHandler.loadXmlFile();
-      if (result != null) {
-        _claimData = result.$1;
-        _originalFilePath = result.$2;
-        _originalDiagnoses = _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
-        _originalActivities = _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xml'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        final file = File(filePath);
+        final xmlString = await file.readAsString();
+
+        final claimData = await compute(parseXmlInBackground, xmlString);
+
+        _claimData = claimData;
+        _originalFilePath = filePath;
+        _originalDiagnoses =
+            _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
+        _originalActivities =
+            _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
         isDiagnosisEditingEnabled = false;
-        final activityCodes = _claimData!.activities.map((a) => a.code).whereType<String>().toSet();
-        _cptDescriptions = await _dbHelper.getDescriptionsForCptCodes(activityCodes);
+        final activityCodes = _claimData!.activities
+            .map((a) => a.code)
+            .whereType<String>()
+            .toSet();
+        _cptDescriptions =
+            await _dbHelper.getDescriptionsForCptCodes(activityCodes);
         _updateControllers();
         onMessage?.call('XML file loaded successfully!', false);
       } else {
@@ -295,17 +320,23 @@ class ClaimDataNotifier extends ChangeNotifier {
         ..patientShare = patientShareController.text
         ..net = netController.text;
       if (_claimData!.resubmission != null) {
-        _claimData!.resubmission!.comment = resubmissionCommentController.text.trim();
+        _claimData!.resubmission!.comment =
+            resubmissionCommentController.text.trim();
       }
       for (int i = 0; i < _claimData!.activities.length; i++) {
         _claimData!.activities[i].net = activityNetControllers[i].text;
       }
-      final xmlString = _xmlHandler.createXmlDocument(_claimData!).toXmlString(pretty: true, indent: '  ');
+      final xmlString = _xmlHandler
+          .createXmlDocument(_claimData!)
+          .toXmlString(pretty: true, indent: '  ');
       String? outputFile;
       final claimId = _claimData!.claimId ?? "UNKNOWN";
       final sanitizedId = claimId.replaceAll(RegExp(r'[^\w-]'), '_');
-      final baseFileName = _originalFilePath != null ? p.basename(_originalFilePath!) : 'output.xml';
-      final finalFileName = shouldRenameFile ? 'claim_$sanitizedId.xml' : baseFileName;
+      final baseFileName = _originalFilePath != null
+          ? p.basename(_originalFilePath!)
+          : 'output.xml';
+      final finalFileName =
+          shouldRenameFile ? 'claim_$sanitizedId.xml' : baseFileName;
       if (saveAs) {
         outputFile = await FilePicker.platform.saveFile(
           dialogTitle: 'Please select an output file:',
@@ -315,12 +346,15 @@ class ClaimDataNotifier extends ChangeNotifier {
         );
       } else {
         final downloadsDir = await getDownloadsDirectory();
-        if (downloadsDir == null) throw Exception("Could not find Downloads directory.");
+        if (downloadsDir == null) {
+          throw Exception("Could not find Downloads directory.");
+        }
         outputFile = p.join(downloadsDir.path, finalFileName);
       }
       if (outputFile != null) {
         await File(outputFile).writeAsString(xmlString);
-        onMessage?.call("XML file saved successfully to ${p.basename(outputFile)}", false);
+        onMessage?.call(
+            "XML file saved successfully to ${p.basename(outputFile)}", false);
       } else {
         onMessage?.call("Save operation cancelled.", false);
       }
@@ -339,6 +373,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     grossDifference = "";
     netDifference = "";
     isDiagnosisEditingEnabled = false;
+    transferOnDelete = false;
     _cptDescriptions.clear();
     _updateControllers();
     notifyListeners();
@@ -347,7 +382,33 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void toggleActivityDeleted(int index) {
     if (_claimData == null || index >= _claimData!.activities.length) return;
-    _claimData!.activities[index].isDeleted = !_claimData!.activities[index].isDeleted;
+
+    final activity = _claimData!.activities[index];
+    final isUndoing = activity.isDeleted;
+
+    if (!isUndoing && transferOnDelete && activity.observations.isNotEmpty) {
+      int nextActivityIndex = -1;
+      for (int i = index + 1; i < _claimData!.activities.length; i++) {
+        if (!_claimData!.activities[i].isDeleted) {
+          nextActivityIndex = i;
+          break;
+        }
+      }
+
+      if (nextActivityIndex != -1) {
+        final targetActivity = _claimData!.activities[nextActivityIndex];
+        targetActivity.observations.addAll(activity.observations);
+        activity.observations.clear();
+        onMessage?.call(
+            'Observations transferred to activity ${targetActivity.code}.',
+            false);
+      } else {
+        onMessage?.call(
+            'No subsequent activity found. Observations will be deleted.', true);
+      }
+    }
+
+    activity.isDeleted = !activity.isDeleted;
     _checkAllBalances();
     notifyListeners();
   }
@@ -376,7 +437,8 @@ class ClaimDataNotifier extends ChangeNotifier {
     double deletedCopay = 0.0;
     for (int i = 0; i < _claimData!.activities.length; i++) {
       final activity = _claimData!.activities[i];
-      final copayVal = double.tryParse(activityCopayControllers[i].text) ?? 0.0;
+      final copayVal =
+          double.tryParse(activityCopayControllers[i].text) ?? 0.0;
       if (activity.isDeleted) {
         deletedCopay += copayVal;
       } else {
@@ -393,6 +455,14 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void toggleRenameFile(bool? value) {
     shouldRenameFile = value ?? false;
+    notifyListeners();
+  }
+
+  void toggleTransferOnDelete(bool? value) {
+    transferOnDelete = value ?? false;
+    onMessage?.call(
+        'Transfer on delete is now ${transferOnDelete ? 'ON' : 'OFF'}.',
+        false);
     notifyListeners();
   }
 
@@ -416,7 +486,8 @@ class ClaimDataNotifier extends ChangeNotifier {
   void deleteDiagnosis(String id) {
     if (_claimData == null) return;
     _claimData!.diagnoses.removeWhere((d) => d.id == id);
-    if (!_claimData!.diagnoses.any((d) => d.type == 'Principal') && _claimData!.diagnoses.isNotEmpty) {
+    if (!_claimData!.diagnoses.any((d) => d.type == 'Principal') &&
+        _claimData!.diagnoses.isNotEmpty) {
       _claimData!.diagnoses.first.type = 'Principal';
     }
     notifyListeners();
@@ -424,15 +495,17 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void resetDiagnoses() {
     if (_claimData == null) return;
-    _claimData!.diagnoses = _originalDiagnoses.map((d) => DiagnosisData.clone(d)).toList();
+    _claimData!.diagnoses =
+        _originalDiagnoses.map((d) => DiagnosisData.clone(d)).toList();
     notifyListeners();
   }
 
   void resetActivities() {
     if (_claimData == null) return;
-    _claimData!.activities = _originalActivities.map((a) => ActivityData.clone(a)).toList();
-    _updateControllers(); // Rebuilds all controllers
-    notifyListeners(); // Notify UI to rebuild with new data/controllers
+    _claimData!.activities =
+        _originalActivities.map((a) => ActivityData.clone(a)).toList();
+    _updateControllers();
+    notifyListeners();
   }
 
   void setPrincipalDiagnosis(String id) {
@@ -448,13 +521,158 @@ class ClaimDataNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  void deleteResubmissionAttachment() {
+    if (_claimData?.resubmission != null) {
+      _claimData!.resubmission!.attachment = null;
+      onMessage?.call('Attachment removed.', false);
+      notifyListeners();
+    }
+  }
+
+  Future<void> addOrEditResubmissionAttachment() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final String base64String =
+            await AttachmentHelper.encodeFromFile(result.files.single.path!);
+
+        if (_claimData?.resubmission != null) {
+          _claimData!.resubmission!.attachment = base64String;
+          onMessage?.call('Attachment updated successfully.', false);
+          notifyListeners();
+        } else {
+          onMessage?.call(
+              'Cannot add attachment, no resubmission data exists.', true);
+        }
+      } else {
+        onMessage?.call('File selection cancelled.', false);
+      }
+    } catch (e) {
+      onMessage?.call('Error adding attachment: $e', true);
+    }
+  }
+
+  Future<void> viewResubmissionAttachment(BuildContext context) async {
+    if (_claimData?.resubmission?.attachment?.isNotEmpty ?? false) {
+      await AttachmentHelper.viewDecodedFile(
+          _claimData!.resubmission!.attachment!, context);
+    } else {
+      onMessage?.call('No attachment to view.', false);
+    }
+  }
+
+  void addObservation(String activityStateId, ObservationData observation) {
+    _claimData?.activities
+        .firstWhere((a) => a.stateId == activityStateId)
+        .observations
+        .add(observation);
+    onMessage?.call('Observation added.', false);
+    notifyListeners();
+  }
+
+  void updateObservation(
+      String activityStateId, ObservationData updatedObservation) {
+    final activity =
+        _claimData?.activities.firstWhere((a) => a.stateId == activityStateId);
+    if (activity != null) {
+      final index = activity.observations
+          .indexWhere((o) => o.id == updatedObservation.id);
+      if (index != -1) {
+        activity.observations[index] = updatedObservation;
+        onMessage?.call('Observation updated.', false);
+        notifyListeners();
+      }
+    }
+  }
+
+  void deleteObservation(String activityStateId, String observationId) {
+    final activity =
+        _claimData?.activities.firstWhere((a) => a.stateId == activityStateId);
+    if (activity != null) {
+      activity.observations.removeWhere((o) => o.id == observationId);
+      onMessage?.call('Observation deleted.', false);
+      notifyListeners();
+    }
+  }
+
+  void mergeObservations(String activityStateId, String observationType) {
+    final activity =
+        _claimData?.activities.firstWhere((a) => a.stateId == activityStateId);
+    if (activity == null) return;
+
+    final toMerge = activity.observations
+        .where((obs) => obs.type == observationType)
+        .toList();
+
+    if (toMerge.length < 2) {
+      onMessage?.call('Not enough items to merge.', true);
+      return;
+    }
+
+    final mergedValue = toMerge.map((e) => e.value).join(' ; ');
+    final firstToMerge = toMerge.first;
+
+    final mergedObservation = ObservationData(
+      type: firstToMerge.type,
+      code: firstToMerge.code,
+      value: mergedValue,
+      valueType: firstToMerge.valueType,
+    );
+
+    activity.observations.removeWhere((obs) => obs.type == observationType);
+    activity.observations.add(mergedObservation);
+
+    onMessage?.call('Observations merged successfully.', false);
+    notifyListeners();
+  }
+
+  void mergeAllTextObservations() {
+    if (_claimData == null) return;
+    int mergeCount = 0;
+    const mergeableTypes = {'Text', 'Presenting-Complaint'};
+
+    for (final activity in _claimData!.activities) {
+      final obsByType = groupBy(activity.observations, (obs) => obs.type);
+
+      for (final type in mergeableTypes) {
+        if (obsByType.containsKey(type) && obsByType[type]!.length > 1) {
+          final toMerge = obsByType[type]!;
+          final mergedValue = toMerge.map((e) => e.value).join(' ; ');
+          final firstToMerge = toMerge.first;
+
+          final mergedObservation = ObservationData(
+            type: firstToMerge.type,
+            code: firstToMerge.code,
+            value: mergedValue,
+            valueType: firstToMerge.valueType,
+          );
+
+          activity.observations.removeWhere((obs) => obs.type == type);
+          activity.observations.add(mergedObservation);
+          mergeCount++;
+        }
+      }
+    }
+
+    if (mergeCount > 0) {
+      onMessage?.call('Merged observations in $mergeCount group(s).', false);
+      notifyListeners();
+    } else {
+      onMessage?.call('No observations found to merge.', true);
+    }
+  }
+
   @override
   void dispose() {
     grossController.dispose();
     patientShareController.dispose();
     netController.dispose();
     resubmissionCommentController.dispose();
-    
+
     for (final c in [...activityNetControllers, ...activityCopayControllers]) {
       c.dispose();
     }

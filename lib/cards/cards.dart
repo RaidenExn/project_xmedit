@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:project_xmedit/cards/observation_manager.dart';
 import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/widgets.dart';
 import 'package:project_xmedit/xml_handler.dart';
 import 'package:provider/provider.dart';
+
+const Map<String, int> _activityColumnFlex = {
+  'code': 3,
+  'qty': 1,
+  'desc': 10,
+  'obs': 2,
+  'net': 2,
+  'copay': 2,
+  'actions': 1,
+};
 
 Color? _getRowColor({
   required BuildContext context,
@@ -16,7 +27,10 @@ Color? _getRowColor({
     return Theme.of(context).colorScheme.error.withAlpha((255 * 0.05).round());
   }
   if (isHighlighted) {
-    return Theme.of(context).colorScheme.primaryContainer.withAlpha((255 * 0.3).round());
+    return Theme.of(context)
+        .colorScheme
+        .primaryContainer
+        .withAlpha((255 * 0.3).round());
   }
   if (isZebra) {
     return Theme.of(context)
@@ -122,8 +136,7 @@ class ActivitiesCard extends StatelessWidget {
     };
 
     if (notifier.claimData?.activities.isEmpty ?? true) {
-      return const Center(
-          child: Text("No activities found."));
+      return const Center(child: Text("No activities found."));
     }
 
     final grouped = notifier.groupedActivities;
@@ -137,25 +150,43 @@ class ActivitiesCard extends StatelessWidget {
         final activitiesOfType = grouped[typeKey]!;
         final typeName = typeMap[typeKey] ?? 'Unknown Type';
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ActivityTableHeader(title: typeName),
-            const Divider(height: 1),
-            ...activitiesOfType.asMap().entries.map((entry) {
-              final int idx = entry.key;
-              final activity = entry.value;
-              final originalIndex =
-                  notifier.claimData!.activities.indexOf(activity);
-              return _ActivityDataRow(
-                key: ValueKey(activity.stateId),
-                notifier: notifier,
-                activity: activity,
-                originalIndex: originalIndex,
-                isZebra: idx.isEven,
-              );
-            }),
-          ],
+        final bool isFirstGroup = index == 0;
+
+        return Padding(
+          padding: EdgeInsets.only(top: isFirstGroup ? 0 : 12.0),
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withAlpha(128),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ActivityTableHeader(title: typeName),
+                const Divider(height: 1),
+                ...activitiesOfType.asMap().entries.map((entry) {
+                  final int idx = entry.key;
+                  final activity = entry.value;
+                  final originalIndex =
+                      notifier.claimData!.activities.indexOf(activity);
+
+                  return _ActivityDataRow(
+                    key: ValueKey(activity.stateId),
+                    notifier: notifier,
+                    activity: activity,
+                    originalIndex: originalIndex,
+                    isZebra: idx.isEven,
+                  );
+                }),
+              ],
+            ),
+          ),
         );
       }),
     );
@@ -171,26 +202,39 @@ class _ActivityTableHeader extends StatelessWidget {
     final style = Theme.of(context).textTheme.bodySmall;
     return _CustomTableHeader(
       children: [
-        SizedBox(
-            width: 160,
-            child:
-                Text(title, style: style?.copyWith(fontWeight: FontWeight.bold))),
-        SizedBox(width: 50, child: Center(child: Text('Qty', style: style))),
-        Expanded(child: Center(child: Text('Description', style: style))),
-        SizedBox(
-            width: 40,
-            child: Center(
-                child: Tooltip(
-                    message: "Observations",
-                    child: Icon(Icons.comment_outlined,
-                        size: 16,
-                        color:
-                            Theme.of(context).colorScheme.onSurfaceVariant)))),
-        SizedBox(width: 100, child: Center(child: Text('Net', style: style))),
-        SizedBox(
-            width: 100, child: Center(child: Text('Copay', style: style))),
-        SizedBox(
-            width: 60, child: Center(child: Text('Actions', style: style))),
+        Expanded(
+          flex: _activityColumnFlex['code']!,
+          child:
+              Text(title, style: style?.copyWith(fontWeight: FontWeight.bold)),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['qty']!,
+          child: Center(child: Text('Qty', style: style)),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['desc']!,
+          child: Center(child: Text('Description', style: style)),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['obs']!,
+          child: Center(
+            child: Icon(Icons.comment_outlined,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['net']!,
+          child: Center(child: Text('Net', style: style)),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['copay']!,
+          child: Center(child: Text('Copay', style: style)),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['actions']!,
+          child: Center(child: Text('Actions', style: style)),
+        ),
       ],
     );
   }
@@ -219,8 +263,7 @@ class _ActivityDataRow extends StatelessWidget {
       color: isDeleted ? Theme.of(context).disabledColor : null,
     );
     final description = notifier.cptDescriptions[activity.code] ?? 'N/A';
-    final bool hasComplaint = activity.observations
-        .any((obs) => obs['Code'] == 'Presenting-Complaint');
+    final int observationCount = activity.observations.length;
 
     Widget codeWidget;
     if (activity.type == '8') {
@@ -244,58 +287,87 @@ class _ActivityDataRow extends StatelessWidget {
       isZebra: isZebra,
       isDeleted: isDeleted,
       children: [
-        SizedBox(width: 160, child: codeWidget),
-        SizedBox(
-            width: 50,
-            child:
-                Center(child: Text(activity.quantity ?? '1', style: textStyle))),
         Expanded(
+          flex: _activityColumnFlex['code']!,
+          child: codeWidget,
+        ),
+        Expanded(
+          flex: _activityColumnFlex['qty']!,
+          child: Center(
+              child: Text(activity.quantity ?? '1', style: textStyle)),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['desc']!,
+          child: Center(
+            child: Text(
+              description,
+              style: textStyle,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: _activityColumnFlex['obs']!,
           child: Center(
             child: Tooltip(
-              message: description,
-              child: Text(
-                description,
-                style: textStyle,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+              message: "Manage Observations",
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  shape: const CircleBorder(),
+                  backgroundColor: observationCount > 0
+                      ? Theme.of(context).colorScheme.secondaryContainer
+                      : null,
+                ),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => ObservationDialog(
+                      activity: activity,
+                      notifier: notifier,
+                    ),
+                  );
+                },
+                child: Text(
+                  '$observationCount',
+                  style: TextStyle(
+                    color: observationCount > 0
+                        ? Theme.of(context).colorScheme.onSecondaryContainer
+                        : Theme.of(context).disabledColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
         ),
-        SizedBox(
-          width: 40,
-          child: Center(
-            child: hasComplaint
-                ? Tooltip(
-                    message: 'Has Presenting-Complaint',
-                    child: Icon(Icons.flag_circle,
-                        size: 16, color: Theme.of(context).colorScheme.primary),
-                  )
-                : const SizedBox(),
+        Expanded(
+          flex: _activityColumnFlex['net']!,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: _EditableNumberCell(
+              controller: notifier.activityNetControllers[originalIndex],
+              enabled: !isDeleted,
+            ),
           ),
         ),
-        SizedBox(
-          width: 100,
-          child: _EditableNumberCell(
-            controller: notifier.activityNetControllers[originalIndex],
-            enabled: !isDeleted,
+        Expanded(
+          flex: _activityColumnFlex['copay']!,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: _EditableNumberCell(
+              controller: notifier.activityCopayControllers[originalIndex],
+              enabled: !isDeleted,
+            ),
           ),
         ),
-        SizedBox(
-          width: 100,
-          child: _EditableNumberCell(
-            controller: notifier.activityCopayControllers[originalIndex],
-            enabled: !isDeleted,
-          ),
-        ),
-        SizedBox(
-          width: 60,
+        Expanded(
+          flex: _activityColumnFlex['actions']!,
           child: Center(
             child: IconButton(
               icon:
                   Icon(isDeleted ? Icons.undo : Icons.delete_outline, size: 18),
               color: isDeleted ? null : Theme.of(context).colorScheme.error,
-              tooltip: isDeleted ? 'Restore Activity' : 'Delete Activity',
               onPressed: () => notifier.toggleActivityDeleted(originalIndex),
             ),
           ),
@@ -324,7 +396,7 @@ class _EditableNumberCell extends StatelessWidget {
         ),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
         ],
       );
 }
@@ -335,7 +407,9 @@ class ControlsResubmissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<ClaimDataNotifier>();
-    final theme = Theme.of(context);
+    final selectedType =
+        notifier.claimData?.resubmission?.type ?? 'internal complaint';
+
     const List<String> resubmissionOptions = [
       "correction",
       "internal complaint",
@@ -344,35 +418,33 @@ class ControlsResubmissionCard extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text("Change Resub Tag", style: theme.textTheme.titleSmall),
-            const SizedBox(width: 8),
-            if (notifier.originalResubmissionType != null)
-              Text(
-                '(Current Type: ${notifier.originalResubmissionType})',
-                style: theme.textTheme.bodySmall,
+          children: resubmissionOptions.map((option) {
+            final bool isSelected = option == selectedType;
+
+            return Expanded(
+              child: RadioListTile<String>(
+                title: Text(
+                  option,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                value: option,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                groupValue: selectedType,
+                onChanged: notifier.updateResubmissionType,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
               ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: resubmissionOptions
-              .map((option) => Expanded(
-                    child: RadioListTile<String>(
-                      title: Text(option, overflow: TextOverflow.ellipsis),
-                      value: option,
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      groupValue: notifier.claimData?.resubmission?.type ??
-                          'internal complaint',
-                      onChanged: notifier.updateResubmissionType,
-                    ),
-                  ))
-              .toList(),
+            );
+          }).toList(),
         ),
         const SizedBox(height: 10),
         TextFormField(
@@ -382,6 +454,7 @@ class ControlsResubmissionCard extends StatelessWidget {
             border: OutlineInputBorder(),
           ),
           maxLines: 2,
+          minLines: 2,
         ),
       ],
     );
@@ -474,17 +547,15 @@ class _DiagnosisDataRow extends StatelessWidget {
           isZebra: isZebra,
           isHighlighted: isPrincipal,
           children: [
-            SizedBox(width: 100, child: Text(diag.code ?? '', style: textStyle)),
+            SizedBox(
+                width: 100, child: Text(diag.code ?? '', style: textStyle)),
             Expanded(
               child: Center(
-                child: Tooltip(
-                  message: description,
-                  child: Text(
-                    description,
-                    style: textStyle,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
+                child: Text(
+                  description,
+                  style: textStyle,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
@@ -510,7 +581,6 @@ class _DiagnosisDataRow extends StatelessWidget {
                 child: IconButton(
                   icon: const Icon(Icons.delete_outline, size: 18),
                   color: Theme.of(context).colorScheme.error,
-                  tooltip: "Delete Diagnosis",
                   onPressed:
                       isEditing ? () => notifier.deleteDiagnosis(diag.id) : null,
                 ),
@@ -677,7 +747,7 @@ class _FinancialInputRow extends StatelessWidget {
             keyboardType:
                 const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
             ],
           ),
         ),

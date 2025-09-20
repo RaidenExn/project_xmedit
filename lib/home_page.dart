@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -112,21 +113,15 @@ class _HomePageState extends State<HomePage> with WindowListener {
                   child: Text('Project XMEdit - v$_version')),
             ),
             actions: [
-              Tooltip(
-                message: "Open XML File (Ctrl+O)",
-                child: TextButton.icon(
-                  icon: const Icon(Icons.folder_open_outlined),
-                  label: const Text("Open"),
-                  onPressed: notifier.loadXmlFile,
-                ),
+              TextButton.icon(
+                icon: const Icon(Icons.folder_open_outlined),
+                label: const Text("Open"),
+                onPressed: notifier.loadXmlFile,
               ),
-              Tooltip(
-                message: "Clear All Data",
-                child: TextButton.icon(
-                  icon: const Icon(Icons.clear_all),
-                  label: const Text("Clear All"),
-                  onPressed: isDataLoaded ? notifier.clearData : null,
-                ),
+              TextButton.icon(
+                icon: const Icon(Icons.clear_all),
+                label: const Text("Clear All"),
+                onPressed: isDataLoaded ? notifier.clearData : null,
               ),
               const VerticalDivider(indent: 12, endIndent: 12),
               Padding(
@@ -138,28 +133,22 @@ class _HomePageState extends State<HomePage> with WindowListener {
                 ),
               ),
               const SizedBox(width: 8),
-              Tooltip(
-                message: "Apply Changes (Ctrl+S)",
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.save_outlined),
-                  label: const Text("Apply"),
-                  onPressed: isDataLoaded
-                      ? () => notifier.saveXmlFile(saveAs: false)
-                      : null,
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
+              FilledButton.icon(
+                icon: const Icon(Icons.save_outlined),
+                label: const Text("Apply"),
+                onPressed: isDataLoaded
+                    ? () => notifier.saveXmlFile(saveAs: false)
+                    : null,
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
                 ),
               ),
               const SizedBox(width: 8),
-              Tooltip(
-                message: "Save As... (Ctrl+Shift+S)",
-                child: TextButton(
-                  onPressed: isDataLoaded
-                      ? () => notifier.saveXmlFile(saveAs: true)
-                      : null,
-                  child: const Text("Save As..."),
-                ),
+              TextButton(
+                onPressed: isDataLoaded
+                    ? () => notifier.saveXmlFile(saveAs: true)
+                    : null,
+                child: const Text("Save As..."),
               ),
               const SizedBox(width: 8),
               const WindowButtons(),
@@ -221,7 +210,6 @@ class _AppDrawerState extends State<AppDrawer> {
       child: ListView(
         padding: const EdgeInsets.all(8.0),
         children: [
-          // Removed DrawerHeader to save space
           Card(
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -287,12 +275,15 @@ class _AppDrawerState extends State<AppDrawer> {
                   leading: Icon(Icons.view_quilt_outlined),
                 ),
                 ...cardNotifier.visibilities.entries.map((entry) {
-                  final title =
-                      entry.key[0].toUpperCase() + entry.key.substring(1);
+                  final key = entry.key;
+                  String title = key[0].toUpperCase() + key.substring(1);
+                  if (key == 'resubmission & totals') {
+                    title = 'Resubmission';
+                  }
                   return SwitchListTile(
                     title: Text(title),
                     value: entry.value,
-                    onChanged: (value) => cardNotifier.toggle(entry.key),
+                    onChanged: (value) => cardNotifier.toggle(key),
                   );
                 }),
               ],
@@ -332,7 +323,6 @@ class _AppDrawerState extends State<AppDrawer> {
                   subtitle: const Text('Abhijith SS'),
                   trailing: IconButton(
                     icon: const Icon(Icons.open_in_new),
-                    tooltip: 'View on GitHub',
                     onPressed: () => _launchURL('https://github.com/RaidenExn'),
                   ),
                 ),
@@ -352,6 +342,7 @@ class BodyContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final claimNotifier = context.watch<ClaimDataNotifier>();
     final cardNotifier = context.watch<CardVisibilityNotifier>();
+    final theme = Theme.of(context);
     const double spacing = 5.0;
 
     if (claimNotifier.isLoading) {
@@ -359,35 +350,58 @@ class BodyContent extends StatelessWidget {
     }
     if (claimNotifier.claimData == null) {
       return Center(
-        child: Container(
-          padding: const EdgeInsets.all(40),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainer,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: InkWell(
+            onTap: claimNotifier.loadXmlFile,
             borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.data_object,
-                size: 64,
-                color: Theme.of(context).colorScheme.primary,
+            child: Container(
+              padding: const EdgeInsets.all(40),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'No XML File Loaded',
-                style: Theme.of(context).textTheme.headlineSmall,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.data_object,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'No XML File Loaded',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Click to open',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Click "Open" in the app bar to get started.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
+            ),
           ),
         ),
       );
+    }
+
+    final resubmission = claimNotifier.claimData?.resubmission;
+    final bool hasAttachment = resubmission?.attachment?.isNotEmpty ?? false;
+    String attachmentText = 'No Attachment';
+    bool isAttachmentInvalid = false;
+
+    if (hasAttachment) {
+      try {
+        final decodedBytes = base64Decode(resubmission!.attachment!);
+        final sizeInKb = (decodedBytes.lengthInBytes / 1024).toStringAsFixed(2);
+        attachmentText = '$sizeInKb KB';
+      } on FormatException {
+        attachmentText = 'Corrupt';
+        isAttachmentInvalid = true;
+      }
     }
 
     final cardConfigs = [
@@ -399,18 +413,62 @@ class BodyContent extends StatelessWidget {
             child: ClaimDetailsCard()),
       },
       {
-        'key': 'controls & totals',
+        'key': 'resubmission & totals',
         'widget': IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Expanded(
+              Expanded(
                 flex: 2,
                 child: ClaimDataSection(
-                    title: "Controls & Resubmission",
+                    title: "Resubmission",
                     titleIcon: Icons.tune_rounded,
+                    titleSuffix: claimNotifier.originalResubmissionType != null
+                        ? Text(
+                            'OG: ${claimNotifier.originalResubmissionType}',
+                            style: theme.textTheme.bodySmall)
+                        : null,
                     canStretch: true,
-                    child: ControlsResubmissionCard()),
+                    actions: [
+                      ActionChip(
+                        avatar: Icon(
+                            hasAttachment
+                                ? Icons.picture_as_pdf_rounded
+                                : Icons.insert_drive_file_outlined,
+                            size: 16,
+                            color: isAttachmentInvalid
+                                ? theme.colorScheme.error
+                                : null),
+                        label: Text(attachmentText),
+                        onPressed: hasAttachment && !isAttachmentInvalid
+                            ? () => claimNotifier
+                                .viewResubmissionAttachment(context)
+                            : null,
+                        labelStyle: TextStyle(
+                            color: isAttachmentInvalid
+                                ? theme.colorScheme.error
+                                : null),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      _HeaderActionButton(
+                        icon: hasAttachment
+                            ? Icons.change_circle_outlined
+                            : Icons.attach_file,
+                        label: hasAttachment ? 'Replace' : 'Add',
+                        onPressed:
+                            claimNotifier.addOrEditResubmissionAttachment,
+                      ),
+                      _HeaderActionButton(
+                        icon: Icons.delete_outline,
+                        label: "Delete",
+                        color: theme.colorScheme.error,
+                        onPressed: hasAttachment
+                            ? claimNotifier.deleteResubmissionAttachment
+                            : null,
+                      ),
+                    ],
+                    child: const ControlsResubmissionCard()),
               ),
               const SizedBox(width: spacing),
               Expanded(
@@ -421,13 +479,12 @@ class BodyContent extends StatelessWidget {
                   canStretch: true,
                   actions: [
                     _HeaderActionButton(
-                      tooltip:
-                          "Automatically adjust totals based on undeleted activities",
                       icon: Icons.auto_fix_high_rounded,
                       label: "Auto Match",
-                      onPressed: claimNotifier.claimData!.activities.isNotEmpty
-                          ? claimNotifier.autoMatchTotals
-                          : null,
+                      onPressed:
+                          claimNotifier.claimData!.activities.isNotEmpty
+                              ? claimNotifier.autoMatchTotals
+                              : null,
                     ),
                   ],
                   child: const TotalsCard(),
@@ -440,34 +497,44 @@ class BodyContent extends StatelessWidget {
       {
         'key': 'activities',
         'widget': ClaimDataSection(
-            title: "Activities",
-            titleIcon: Icons.list_alt_rounded,
-            actions: [
-              _HeaderActionButton(
-                tooltip: "Reset activities to their original state",
-                icon: Icons.refresh,
-                label: "Reset",
-                onPressed: claimNotifier.resetActivities,
-              ),
-              _HeaderActionButton(
-                tooltip: "Mark all activities as deleted",
-                icon: Icons.clear_all_rounded,
-                label: "Delete All",
-                color: Theme.of(context).colorScheme.error,
-                onPressed: claimNotifier.claimData!.activities.isNotEmpty
-                    ? claimNotifier.deleteAllActivities
-                    : null,
-              ),
-              _HeaderActionButton(
-                tooltip: "Restore all deleted activities",
-                icon: Icons.playlist_add_check_rounded,
-                label: "Add All",
-                onPressed: claimNotifier.claimData!.activities.isNotEmpty
-                    ? claimNotifier.addAllActivities
-                    : null,
-              ),
-            ],
-            child: const ActivitiesCard()),
+          title: "Activities",
+          titleIcon: Icons.list_alt_rounded,
+          actions: [
+            _HeaderActionButton(
+              icon: Icons.merge_type,
+              label: "Merge All Texts",
+              onPressed: claimNotifier.mergeAllTextObservations,
+            ),
+            FilterChip(
+              label: const Text("Transfer on Delete"),
+              selected: claimNotifier.transferOnDelete,
+              onSelected: claimNotifier.toggleTransferOnDelete,
+              visualDensity: VisualDensity.compact,
+            ),
+            const VerticalDivider(width: 16, indent: 8, endIndent: 8),
+            _HeaderActionButton(
+              icon: Icons.refresh,
+              label: "Reset",
+              onPressed: claimNotifier.resetActivities,
+            ),
+            _HeaderActionButton(
+              icon: Icons.clear_all_rounded,
+              label: "Delete All",
+              color: Theme.of(context).colorScheme.error,
+              onPressed: claimNotifier.claimData!.activities.isNotEmpty
+                  ? claimNotifier.deleteAllActivities
+                  : null,
+            ),
+            _HeaderActionButton(
+              icon: Icons.playlist_add_check_rounded,
+              label: "Add All",
+              onPressed: claimNotifier.claimData!.activities.isNotEmpty
+                  ? claimNotifier.addAllActivities
+                  : null,
+            ),
+          ],
+          child: const ActivitiesCard(),
+        ),
       },
       {
         'key': 'diagnosis',
@@ -475,19 +542,15 @@ class BodyContent extends StatelessWidget {
           title: "Diagnoses",
           titleIcon: Icons.medical_information_rounded,
           actions: [
-            Tooltip(
-              message: "Toggle editing for diagnoses",
-              child: FilterChip(
-                label: const Text("Edit"),
-                selected: claimNotifier.isDiagnosisEditingEnabled,
-                onSelected: claimNotifier.toggleDiagnosisEditing,
-                visualDensity: VisualDensity.compact,
-                labelStyle: Theme.of(context).textTheme.bodySmall,
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-              ),
+            FilterChip(
+              label: const Text("Edit"),
+              selected: claimNotifier.isDiagnosisEditingEnabled,
+              onSelected: claimNotifier.toggleDiagnosisEditing,
+              visualDensity: VisualDensity.compact,
+              labelStyle: Theme.of(context).textTheme.bodySmall,
+              padding: const EdgeInsets.symmetric(horizontal: 2),
             ),
             _HeaderActionButton(
-              tooltip: "Reset diagnoses to their original state",
               icon: Icons.refresh,
               label: "Reset",
               onPressed: claimNotifier.isDiagnosisEditingEnabled
@@ -517,7 +580,6 @@ class BodyContent extends StatelessWidget {
                   : null,
             ),
             _HeaderActionButton(
-              tooltip: "Add a new diagnosis",
               icon: Icons.add,
               label: "Add",
               onPressed: claimNotifier.isDiagnosisEditingEnabled
@@ -550,14 +612,12 @@ class BodyContent extends StatelessWidget {
 }
 
 class _HeaderActionButton extends StatelessWidget {
-  final String tooltip;
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
   final Color? color;
 
   const _HeaderActionButton({
-    required this.tooltip,
     required this.icon,
     required this.label,
     this.onPressed,
@@ -565,16 +625,13 @@ class _HeaderActionButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-        message: tooltip,
-        child: TextButton.icon(
-          style: TextButton.styleFrom(
-            visualDensity: VisualDensity.compact,
-            foregroundColor: color,
-          ),
-          icon: Icon(icon, size: 16),
-          label: Text(label),
-          onPressed: onPressed,
+  Widget build(BuildContext context) => TextButton.icon(
+        style: TextButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          foregroundColor: color,
         ),
+        icon: Icon(icon, size: 16),
+        label: Text(label),
+        onPressed: onPressed,
       );
 }

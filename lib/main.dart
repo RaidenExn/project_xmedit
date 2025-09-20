@@ -7,8 +7,7 @@ import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Add these two lines for desktop database support
+
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
