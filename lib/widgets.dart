@@ -7,6 +7,7 @@ class ClaimDataSection extends StatelessWidget {
   final Widget child;
   final bool canStretch;
   final IconData? titleIcon;
+  final Widget? titleSuffix;
   final List<Widget>? actions;
 
   const ClaimDataSection({
@@ -15,6 +16,7 @@ class ClaimDataSection extends StatelessWidget {
     required this.child,
     this.canStretch = false,
     this.titleIcon,
+    this.titleSuffix,
     this.actions,
   });
 
@@ -53,6 +55,10 @@ class ClaimDataSection extends StatelessWidget {
                       title,
                       style: textStyles.titleSmall,
                     ),
+                    if (titleSuffix != null) ...[
+                      const SizedBox(width: 8),
+                      titleSuffix!,
+                    ]
                   ],
                 ),
                 if (actions != null)
@@ -116,7 +122,6 @@ class DataFieldWithCopy extends StatelessWidget {
           const SizedBox(width: 8.0),
           IconButton(
             icon: const Icon(Icons.copy, size: 18),
-            tooltip: 'Copy to clipboard',
             onPressed: () => _copyToClipboard(context),
             splashRadius: 20,
             padding: EdgeInsets.zero,

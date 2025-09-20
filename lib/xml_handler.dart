@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
 import 'package:collection/collection.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
 
 class XmlParsingException implements Exception {
@@ -16,6 +20,7 @@ const List<String> claimChildOrder = [
   "MemberID",
   "PayerID",
   "ProviderID",
+  "Weight",
   "EmiratesIDNumber",
   "Gross",
   "PatientShare",
@@ -43,14 +48,37 @@ class DiagnosisData {
 class ResubmissionData {
   String? type;
   String? comment;
+  String? attachment;
 }
 
 class ContractData {
   String? packageName;
 }
 
+class ObservationData {
+  String id = const Uuid().v4();
+  String type;
+  String code;
+  String value;
+  String valueType;
+
+  ObservationData({
+    required this.type,
+    required this.code,
+    required this.value,
+    required this.valueType,
+  });
+
+  ObservationData.clone(ObservationData other)
+      : id = other.id,
+        type = other.type,
+        code = other.code,
+        value = other.value,
+        valueType = other.valueType;
+}
+
 class ActivityData {
-  String stateId = const Uuid().v4(); // Unique ID for state management
+  String stateId = const Uuid().v4();
   String? id;
   String? start;
   String? type;
@@ -61,7 +89,7 @@ class ActivityData {
   String? priorAuthorizationID;
   String? copay;
   bool isDeleted = false;
-  List<Map<String, String>> observations = [];
+  List<ObservationData> observations = [];
 
   ActivityData();
 
@@ -77,8 +105,8 @@ class ActivityData {
         priorAuthorizationID = other.priorAuthorizationID,
         copay = other.copay,
         isDeleted = other.isDeleted,
-        observations = List<Map<String, String>>.from(
-            other.observations.map((e) => Map<String, String>.from(e)));
+        observations = List<ObservationData>.from(
+            other.observations.map((o) => ObservationData.clone(o)));
 }
 
 class ClaimData {
@@ -93,6 +121,7 @@ class ClaimData {
   String? memberID;
   String? payerID;
   String? providerID;
+  String? weight;
   String? emiratesIDNumber;
   String? gross;
   String? patientShare;
@@ -112,7 +141,7 @@ class ClaimData {
   ContractData? contract;
 }
 
-ClaimData _parseXmlInBackground(String xmlString) {
+ClaimData parseXmlInBackground(String xmlString) {
   XmlDocument document;
   try {
     document = XmlDocument.parse(xmlString);
@@ -151,6 +180,8 @@ ClaimData _parseXmlInBackground(String xmlString) {
       claimElement.findAllElements('PayerID').firstOrNull?.innerText;
   claimData.providerID =
       claimElement.findAllElements('ProviderID').firstOrNull?.innerText;
+  claimData.weight =
+      claimElement.findAllElements('Weight').firstOrNull?.innerText;
   claimData.emiratesIDNumber =
       claimElement.findAllElements('EmiratesIDNumber').firstOrNull?.innerText;
   claimData.gross = claimElement.findAllElements('Gross').firstOrNull?.innerText;
@@ -201,15 +232,15 @@ ClaimData _parseXmlInBackground(String xmlString) {
     activityData.copay =
         activity.findAllElements('Copay').firstOrNull?.innerText;
     for (final observation in activity.findAllElements('Observation')) {
-      activityData.observations.add({
-        'Type': observation.findAllElements('Type').firstOrNull?.innerText ?? '',
-        'Code': observation.findAllElements('Code').firstOrNull?.innerText ?? '',
-        'Value':
+      activityData.observations.add(ObservationData(
+        type: observation.findAllElements('Type').firstOrNull?.innerText ?? '',
+        code: observation.findAllElements('Code').firstOrNull?.innerText ?? '',
+        value:
             observation.findAllElements('Value').firstOrNull?.innerText ?? '',
-        'ValueType':
+        valueType:
             observation.findAllElements('ValueType').firstOrNull?.innerText ??
                 '',
-      });
+      ));
     }
     claimData.activities.add(activityData);
   }
@@ -220,6 +251,14 @@ ClaimData _parseXmlInBackground(String xmlString) {
         resubmission.findAllElements('Type').firstOrNull?.innerText;
     resubmissionData.comment =
         resubmission.findAllElements('Comment').firstOrNull?.innerText;
+
+    final attachmentText =
+        resubmission.findAllElements('Attachment').firstOrNull?.innerText;
+    if (attachmentText != null) {
+      resubmissionData.attachment =
+          attachmentText.replaceAll(RegExp(r'\s+'), '');
+    }
+
     claimData.resubmission = resubmissionData;
   }
   final contract = document.findAllElements('Contract').firstOrNull;
@@ -233,22 +272,6 @@ ClaimData _parseXmlInBackground(String xmlString) {
 }
 
 class XmlHandler {
-  Future<(ClaimData, String)?> loadXmlFile() async {
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['xml'],
-    );
-    if (result == null || result.files.single.path == null) {
-      return null;
-    }
-    final filePath = result.files.single.path!;
-    final file = File(filePath);
-    final xmlString = await file.readAsString();
-
-    final claimData = await compute(_parseXmlInBackground, xmlString);
-    return (claimData, filePath);
-  }
-
   XmlElement _buildElement(String name, String? value) {
     return XmlElement(XmlName(name), [], [if (value != null) XmlText(value)]);
   }
@@ -283,6 +306,9 @@ class XmlHandler {
     }
     addChild('PayerID', _buildElement('PayerID', data.payerID));
     addChild('ProviderID', _buildElement('ProviderID', data.providerID));
+    if (data.weight != null) {
+      addChild('Weight', _buildElement('Weight', data.weight));
+    }
     addChild('EmiratesIDNumber',
         _buildElement('EmiratesIDNumber', data.emiratesIDNumber));
     addChild('Gross', _buildElement('Gross', data.gross ?? '0'));
@@ -329,23 +355,28 @@ class XmlHandler {
       ];
       for (final obs in activity.observations) {
         activityChildren.add(XmlElement(XmlName('Observation'), [], [
-          _buildElement('Type', obs['Type']),
-          _buildElement('Code', obs['Code']),
-          if (obs['Value'] != null) _buildElement('Value', obs['Value']),
-          if (obs['ValueType'] != null)
-            _buildElement('ValueType', obs['ValueType']),
+          _buildElement('Type', obs.type),
+          _buildElement('Code', obs.code),
+          if (obs.value.isNotEmpty) _buildElement('Value', obs.value),
+          if (obs.valueType.isNotEmpty)
+            _buildElement('ValueType', obs.valueType),
         ]));
       }
-      addChild('Activity', XmlElement(XmlName('Activity'), [], activityChildren));
+      addChild(
+          'Activity', XmlElement(XmlName('Activity'), [], activityChildren));
     }
 
     if (data.resubmission != null) {
-      addChild(
-          'Resubmission',
-          XmlElement(XmlName('Resubmission'), [], [
-            _buildElement('Type', data.resubmission!.type),
-            _buildElement('Comment', data.resubmission!.comment),
-          ]));
+      final resubmissionChildren = [
+        _buildElement('Type', data.resubmission!.type),
+        _buildElement('Comment', data.resubmission!.comment),
+      ];
+      if (data.resubmission!.attachment != null) {
+        resubmissionChildren
+            .add(_buildElement('Attachment', data.resubmission!.attachment));
+      }
+      addChild('Resubmission',
+          XmlElement(XmlName('Resubmission'), [], resubmissionChildren));
     }
 
     if (data.contract != null && data.contract!.packageName != null) {
@@ -366,9 +397,47 @@ class XmlHandler {
 
     final submission = XmlElement(
         XmlName('Claim.Submission'),
-        [XmlAttribute(XmlName('xmlns:xsi'), 'http://www.w3.org/2001/XMLSchema-instance')],
+        [
+          XmlAttribute(
+              XmlName('xmlns:xsi'), 'http://www.w3.org/2001/XMLSchema-instance')
+        ],
         [header, claim]);
 
     return XmlDocument([processingInstruction, submission]);
+  }
+}
+
+class AttachmentHelper {
+  static Future<String> encodeFromFile(String filePath) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw Exception('File not found at path: $filePath');
+    }
+    final Uint8List fileBytes = await file.readAsBytes();
+    return base64Encode(fileBytes);
+  }
+
+  static Future<File> decodeToTempFile(String base64Content) async {
+    final Uint8List bytes = base64Decode(base64Content);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/attachment_preview.pdf');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  static Future<void> viewDecodedFile(
+      String base64Content, BuildContext context) async {
+    try {
+      final file = await decodeToTempFile(base64Content);
+      if (!await launchUrl(file.uri, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch ${file.uri}');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open file: $e')),
+        );
+      }
+    }
   }
 }

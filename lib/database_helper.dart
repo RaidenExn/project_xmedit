@@ -76,8 +76,7 @@ class DatabaseHelper {
     );
     return {for (var map in maps) map['code']: map['description']};
   }
-  
-  // This method was missing
+
   Future<String?> getIcd10Description(String code) async {
     if (code.isEmpty) return null;
     final db = await database;
@@ -103,7 +102,6 @@ class DatabaseHelper {
       whereArgs: ['%$query%', '%$query%'],
       limit: 50,
     );
-    // Added explicit type casting to fix the return type error
     return maps
         .map((map) =>
             MapEntry(map['code'] as String, map['description'] as String))
