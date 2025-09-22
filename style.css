@@ -1,0 +1,174 @@
+/* General Styles */
+:root {
+    --primary-color: #005FB8;
+    --background-color: #F0F2F5;
+    --surface-color: #FFFFFF;
+    --text-color: #202124;
+    --muted-text-color: #5F6368;
+    --border-color: #DADCE0;
+    --shadow: 0 1px 2px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.08);
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Header & Hero Section */
+.hero {
+    background-color: var(--surface-color);
+    padding: 1.5rem 0 2.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.header-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.app-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.header-button {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.header-button:hover {
+    background-color: #E8EAED;
+    border-color: #C5C7CA;
+    text-decoration: none;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+}
+
+.hero .subtitle {
+    font-size: 1.15rem;
+    color: var(--muted-text-color);
+    margin: 0 0 1.5rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.button {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+.button:hover {
+    background-color: #004A94;
+    text-decoration: none;
+}
+
+/* Sections */
+section {
+    padding: 2.5rem 0;
+}
+section h2 {
+    text-align: center;
+    font-size: 2rem;
+    margin-top: 0;
+    margin-bottom: 2rem;
+}
+
+/* Card Grid */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.card {
+    background-color: var(--surface-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    text-align: left;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.card h3 {
+    margin-top: 0;
+    font-size: 1.15rem;
+}
+
+/* Screenshot Section */
+.screenshot-img {
+    max-width: 100%;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+
+
+/* Installation Section */
+.installation .card {
+    margin-bottom: 1.5rem;
+}
+
+.installation ol {
+    padding-left: 20px;
+    margin: 1rem 0 0;
+}
+
+.installation ol li {
+    margin-bottom: 0.5rem;
+}
+
+
+/* Footer */
+footer {
+    padding: 1.5rem 0;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+    color: var(--muted-text-color);
+    font-size: 0.9rem;
+}
