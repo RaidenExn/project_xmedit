@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 
 const Map<String, int> _activityColumnFlex = {
   'code': 3,
-  'qty': 1,
+  'qty': 2,
   'desc': 10,
   'obs': 2,
   'net': 2,
@@ -283,6 +283,10 @@ class _ActivityDataRow extends StatelessWidget {
       codeWidget = Text(activity.code ?? 'N/A', style: textStyle);
     }
 
+    final originalActivity = notifier.originalActivities[originalIndex];
+    final isQtyEdited =
+        activity.quantity != (originalActivity.quantity ?? '1');
+
     return _CustomDataRow(
       isZebra: isZebra,
       isDeleted: isDeleted,
@@ -293,8 +297,27 @@ class _ActivityDataRow extends StatelessWidget {
         ),
         Expanded(
           flex: _activityColumnFlex['qty']!,
-          child: Center(
-              child: Text(activity.quantity ?? '1', style: textStyle)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 50,
+                child: _EditableQuantityCell(
+                  controller:
+                      notifier.activityQuantityControllers[originalIndex],
+                  enabled: !isDeleted,
+                ),
+              ),
+              if (isQtyEdited && !isDeleted)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4.0),
+                  child: Tooltip(
+                    message: 'Quantity has been modified',
+                    child: Icon(Icons.edit_note, size: 16),
+                  ),
+                ),
+            ],
+          ),
         ),
         Expanded(
           flex: _activityColumnFlex['desc']!,
@@ -375,6 +398,30 @@ class _ActivityDataRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _EditableQuantityCell extends StatelessWidget {
+  final TextEditingController controller;
+  final bool enabled;
+
+  const _EditableQuantityCell({required this.controller, required this.enabled});
+
+  @override
+  Widget build(BuildContext context) => TextFormField(
+        controller: controller,
+        enabled: enabled,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 14),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
+        ),
+        keyboardType: TextInputType.number,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+        ],
+      );
 }
 
 class _EditableNumberCell extends StatelessWidget {
@@ -514,7 +561,7 @@ class _DiagnosisTableHeader extends StatelessWidget {
   }
 }
 
-class _DiagnosisDataRow extends StatelessWidget {
+class _DiagnosisDataRow extends StatefulWidget {
   final ClaimDataNotifier notifier;
   final DiagnosisData diag;
   final bool isZebra;
@@ -526,29 +573,44 @@ class _DiagnosisDataRow extends StatelessWidget {
       required this.isZebra});
 
   @override
+  State<_DiagnosisDataRow> createState() => _DiagnosisDataRowState();
+}
+
+class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
+  late Future<String?> _descriptionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _descriptionFuture =
+        DatabaseHelper().getIcd10Description(widget.diag.code ?? '');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isEditing = notifier.isDiagnosisEditingEnabled;
+    final isEditing = widget.notifier.isDiagnosisEditingEnabled;
     final textStyle =
         TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface);
-    final String principalId = notifier.claimData!.diagnoses
+    final String principalId = widget.notifier.claimData!.diagnoses
         .firstWhere((d) => d.type == 'Principal',
-            orElse: () => notifier.claimData!.diagnoses.first)
+            orElse: () => widget.notifier.claimData!.diagnoses.first)
         .id;
-    final isPrincipal = diag.type == 'Principal';
+    final isPrincipal = widget.diag.type == 'Principal';
 
     return FutureBuilder<String?>(
-      future: DatabaseHelper().getIcd10Description(diag.code ?? ''),
+      future: _descriptionFuture,
       builder: (context, snapshot) {
         final description = snapshot.connectionState == ConnectionState.done
             ? (snapshot.data ?? 'N/A')
             : 'Loading...';
 
         return _CustomDataRow(
-          isZebra: isZebra,
+          isZebra: widget.isZebra,
           isHighlighted: isPrincipal,
           children: [
             SizedBox(
-                width: 100, child: Text(diag.code ?? '', style: textStyle)),
+                width: 100,
+                child: Text(widget.diag.code ?? '', style: textStyle)),
             Expanded(
               child: Center(
                 child: Text(
@@ -563,12 +625,12 @@ class _DiagnosisDataRow extends StatelessWidget {
               width: 80,
               child: Center(
                 child: Radio<String>(
-                  value: diag.id,
+                  value: widget.diag.id,
                   groupValue: principalId,
                   onChanged: isEditing
                       ? (value) {
                           if (value != null) {
-                            notifier.setPrincipalDiagnosis(value);
+                            widget.notifier.setPrincipalDiagnosis(value);
                           }
                         }
                       : null,
@@ -581,8 +643,9 @@ class _DiagnosisDataRow extends StatelessWidget {
                 child: IconButton(
                   icon: const Icon(Icons.delete_outline, size: 18),
                   color: Theme.of(context).colorScheme.error,
-                  onPressed:
-                      isEditing ? () => notifier.deleteDiagnosis(diag.id) : null,
+                  onPressed: isEditing
+                      ? () => widget.notifier.deleteDiagnosis(widget.diag.id)
+                      : null,
                 ),
               ),
             ),

@@ -1,7 +1,7 @@
 name: project_xmedit
 description: An XML editing tool.
 publish_to: 'none'
-version: 2.0.0-beta+1
+version: 2.1.0
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
