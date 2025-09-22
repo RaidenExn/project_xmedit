@@ -18,7 +18,7 @@ A desktop application built with Flutter for manually editing specific DHPO XML 
 
 ## 🚀 Installation
 
-Downloaded the pre-built `.zip` file from the [Releases](https://github.com/your-username/project_xmedit/releases) page.
+Downloaded the pre-built `.zip` file from the [Releases](https://github.com/RaidenExn/project_xmedit/releases/latest) page.
 
 ### **1. Install Required Runtime**
 This application requires the Microsoft Visual C++ Redistributable to run.
