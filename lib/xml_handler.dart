@@ -1,6 +1,5 @@
-import 'dart:convert';
+import 'dart:convert'; // Corrected typo here
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
 import 'package:collection/collection.dart';
 import 'package:uuid/uuid.dart';
+import 'package:project_xmedit/helpers/platform_helper.dart';
 
 class XmlParsingException implements Exception {
   final String message;
@@ -408,29 +408,37 @@ class XmlHandler {
 }
 
 class AttachmentHelper {
+  static Future<String> encodeFromBytes(Uint8List fileBytes) async {
+    return base64Encode(fileBytes);
+  }
+
   static Future<String> encodeFromFile(String filePath) async {
+    if (kIsWeb) {
+      throw UnsupportedError(
+          'encodeFromFile is not supported on the web platform.');
+    }
     final file = File(filePath);
     if (!await file.exists()) {
       throw Exception('File not found at path: $filePath');
     }
     final Uint8List fileBytes = await file.readAsBytes();
-    return base64Encode(fileBytes);
-  }
-
-  static Future<File> decodeToTempFile(String base64Content) async {
-    final Uint8List bytes = base64Decode(base64Content);
-    final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/attachment_preview.pdf');
-    await file.writeAsBytes(bytes);
-    return file;
+    return encodeFromBytes(fileBytes);
   }
 
   static Future<void> viewDecodedFile(
       String base64Content, BuildContext context) async {
     try {
-      final file = await decodeToTempFile(base64Content);
-      if (!await launchUrl(file.uri, mode: LaunchMode.externalApplication)) {
-        throw Exception('Could not launch ${file.uri}');
+      if (kIsWeb) {
+        WebDownloadHelper.openFile(base64Content, 'attachment_preview.pdf');
+      } else {
+        final bytes = base64Decode(base64Content);
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/attachment_preview.pdf');
+        await file.writeAsBytes(bytes);
+        if (!await launchUrl(file.uri,
+            mode: LaunchMode.externalApplication)) {
+          throw Exception('Could not launch ${file.uri}');
+        }
       }
     } catch (e) {
       if (context.mounted) {

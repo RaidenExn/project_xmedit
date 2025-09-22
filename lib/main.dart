@@ -2,55 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:project_xmedit/home_page.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:provider/provider.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() async {
+  // Ensure Flutter is initialized.
   WidgetsFlutterBinding.ensureInitialized();
 
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  // Correctly await the creation of notifiers.
+  final themeNotifier = await ThemeNotifier.create();
+  final cardVisibilityNotifier = await CardVisibilityNotifier.create();
 
-  await windowManager.ensureInitialized();
+  if (!kIsWeb) {
+    await windowManager.ensureInitialized();
+    WindowOptions windowOptions = const WindowOptions(
+      minimumSize: Size(1200, 800),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.hidden,
+    );
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
 
-  const windowOptions = WindowOptions(
-    size: Size(1200, 800),
-    minimumSize: Size(1150, 700),
-    center: true,
-    title: 'Project XMEdit',
-    titleBarStyle: TitleBarStyle.hidden,
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ClaimDataNotifier()),
+        ChangeNotifierProvider.value(value: themeNotifier),
+        ChangeNotifierProvider.value(value: cardVisibilityNotifier),
+      ],
+      child: const MyApp(),
+    ),
   );
-
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (context) => ClaimDataNotifier()),
-          ChangeNotifierProvider(create: (context) => ThemeNotifier()),
-          ChangeNotifierProvider(create: (context) => CardVisibilityNotifier()),
-        ],
-        child: const AppContent(),
-      );
-}
-
-class AppContent extends StatelessWidget {
-  const AppContent({super.key});
-
-  @override
   Widget build(BuildContext context) {
     final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
       title: 'Project XMEdit',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: themeNotifier.seedColor,
@@ -66,7 +64,6 @@ class AppContent extends StatelessWidget {
         useMaterial3: true,
       ),
       themeMode: themeNotifier.themeMode,
-      debugShowCheckedModeBanner: false,
       home: const HomePage(),
     );
   }
