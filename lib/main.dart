@@ -4,16 +4,15 @@ import 'package:project_xmedit/notifiers.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
-  // Ensure Flutter is initialized.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Correctly await the creation of notifiers.
-  final themeNotifier = await ThemeNotifier.create();
-  final cardVisibilityNotifier = await CardVisibilityNotifier.create();
-
   if (!kIsWeb) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = const WindowOptions(
       minimumSize: Size(1200, 800),
@@ -28,10 +27,13 @@ void main() async {
     });
   }
 
+  final themeNotifier = await ThemeNotifier.create();
+  final cardVisibilityNotifier = await CardVisibilityNotifier.create();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => ClaimDataNotifier()),
+        ChangeNotifierProvider(create: (_) => ClaimDataNotifier()),
         ChangeNotifierProvider.value(value: themeNotifier),
         ChangeNotifierProvider.value(value: cardVisibilityNotifier),
       ],

@@ -11,7 +11,6 @@ import 'package:project_xmedit/helpers/platform_helper.dart';
 import 'package:project_xmedit/xml_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// =================== ThemeNotifier ===================
 class ThemeNotifier extends ChangeNotifier {
   late SharedPreferences _prefs;
   ThemeMode _themeMode = ThemeMode.system;
@@ -42,13 +41,11 @@ class ThemeNotifier extends ChangeNotifier {
   void changeSeedColor(Color color) {
     if (_seedColor == color) return;
     _seedColor = color;
-    // ignore: deprecated_member_use
     _prefs.setInt('themeColor', color.value);
     notifyListeners();
   }
 }
 
-// =================== CardVisibilityNotifier ===================
 class CardVisibilityNotifier extends ChangeNotifier {
   late SharedPreferences _prefs;
   final Map<String, bool> _visibilities = {'details': true, 'resubmission & totals': true, 'activities': true, 'diagnosis': true};
@@ -75,7 +72,6 @@ class CardVisibilityNotifier extends ChangeNotifier {
   }
 }
 
-// =================== ClaimDataNotifier ===================
 class ClaimDataNotifier extends ChangeNotifier {
   final _xmlHandler = XmlHandler();
   final _dbHelper = DatabaseHelper();
@@ -87,7 +83,6 @@ class ClaimDataNotifier extends ChangeNotifier {
   double _originalPatientShare = 0.0;
   void Function(String message, bool isError)? onMessage;
 
-  // Public state
   bool shouldRenameFile = false;
   String? originalResubmissionType;
   String grossDifference = "";
@@ -96,7 +91,6 @@ class ClaimDataNotifier extends ChangeNotifier {
   bool isDiagnosisEditingEnabled = false;
   bool transferOnDelete = false;
 
-  // Controllers
   final grossController = TextEditingController();
   final patientShareController = TextEditingController();
   final netController = TextEditingController();
@@ -117,7 +111,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     if (!kIsWeb) _dbHelper.database;
   }
 
-  // --- Private Helper Methods ---
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -176,13 +169,11 @@ class ClaimDataNotifier extends ChangeNotifier {
   }
 
   void _updateAndRefreshControllers() {
-    // Dispose old listeners and controllers
     grossController.removeListener(_onControllerChanged);
     patientShareController.removeListener(_onControllerChanged);
     netController.removeListener(_onControllerChanged);
     _disposeActivityControllers();
 
-    // Clear and setup new ones
     for (final controller in [grossController, patientShareController, netController, resubmissionCommentController]) {
         controller.clear();
     }
@@ -224,13 +215,12 @@ class ClaimDataNotifier extends ChangeNotifier {
         ..net = newNetText;
 
     if (netController.text != newNetText) {
-      netController.text = newNetText; // This will trigger _onControllerChanged
+      netController.text = newNetText;
     } else {
       notifyListeners();
     }
   }
 
-  // --- Public API Methods ---
   Future<void> loadXmlFile() async {
     _setLoading(true);
     cptDescriptions.clear();
@@ -390,7 +380,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     final n = double.tryParse(netController.text) ?? 0.0;
     if (source == "gross") {
       netController.text = (g - ps).toStringAsFixed(2);
-    } else { // pshare or net
+    } else {
       grossController.text = (n + ps).toStringAsFixed(2);
     }
     _checkNetBalance();
@@ -404,7 +394,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Resubmission and Toggles ---
   void toggleRenameFile(bool? value) {
     shouldRenameFile = value ?? false;
     notifyListeners();
@@ -460,7 +449,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     }
   }
 
-  // --- Diagnosis Methods ---
   void toggleDiagnosisEditing(bool value) {
     isDiagnosisEditingEnabled = value;
     notifyListeners();
@@ -495,7 +483,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     notifyListeners();
   }
   
-  // --- Observation Methods ---
   void addObservation(String activityStateId, ObservationData observation) {
     _findActivityById(activityStateId)?.observations.add(observation);
     onMessage?.call('Observation added.', false);
@@ -567,7 +554,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     }
   }
 
-  // --- Lifecycle ---
   @override
   void dispose() {
     for (final controller in [grossController, patientShareController, netController, resubmissionCommentController]) {

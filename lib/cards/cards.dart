@@ -143,8 +143,6 @@ class WindowButtons extends StatelessWidget {
       );
 }
 
-// --- Table/Row Helper Widgets ---
-
 const Map<String, int> _activityColumnFlex = {'code': 3, 'qty': 2, 'desc': 10, 'obs': 2, 'net': 2, 'copay': 2, 'actions': 1};
 
 Color? _getRowColor(BuildContext context, {required bool isZebra, bool isDeleted = false, bool isHighlighted = false}) {
@@ -184,8 +182,6 @@ class _CustomDataRow extends StatelessWidget {
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: children),
       );
 }
-
-// --- Card Widgets ---
 
 class ClaimDetailsCard extends StatelessWidget {
   const ClaimDetailsCard({super.key});
@@ -667,8 +663,6 @@ class _FinancialInputRow extends StatelessWidget {
     ]);
   }
 }
-
-// --- Observation Manager Widgets & Dialogs ---
 
 class ObservationDialog extends StatefulWidget {
   final ActivityData activity;
