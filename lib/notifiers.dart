@@ -128,6 +128,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   List<TextEditingController> activityNetControllers = [];
   List<TextEditingController> activityCopayControllers = [];
+  List<TextEditingController> activityQuantityControllers = [];
   Map<String, TextEditingController> activityDslCodeControllers = {};
 
   ClaimDataNotifier() {
@@ -137,6 +138,7 @@ class ClaimDataNotifier extends ChangeNotifier {
   Map<String, String> get cptDescriptions => _cptDescriptions;
   ClaimData? get claimData => _claimData;
   bool get isLoading => _isLoading;
+  List<ActivityData> get originalActivities => _originalActivities;
 
   Map<String, List<ActivityData>> get groupedActivities {
     if (_claimData == null) return {};
@@ -163,16 +165,22 @@ class ClaimDataNotifier extends ChangeNotifier {
     final oldNetControllers = activityNetControllers;
     final oldCopayControllers = activityCopayControllers;
     final oldDslCodeControllers = activityDslCodeControllers;
+    final oldQuantityControllers = activityQuantityControllers;
 
     activityNetControllers = [];
     activityCopayControllers = [];
     activityDslCodeControllers = {};
+    activityQuantityControllers = [];
 
     grossController.removeListener(_onControllerChanged);
     patientShareController.removeListener(_onControllerChanged);
     netController.removeListener(_onControllerChanged);
 
-    for (final c in [...oldNetControllers, ...oldCopayControllers]) {
+    for (final c in [
+      ...oldNetControllers,
+      ...oldCopayControllers,
+      ...oldQuantityControllers
+    ]) {
       c.removeListener(_onControllerChanged);
       c.dispose();
     }
@@ -203,7 +211,14 @@ class ClaimDataNotifier extends ChangeNotifier {
             'internal complaint';
       }
 
-      for (final activity in _claimData!.activities) {
+      for (int i = 0; i < _claimData!.activities.length; i++) {
+        final activity = _claimData!.activities[i];
+
+        final qtyController =
+            TextEditingController(text: activity.quantity ?? '1');
+        qtyController.addListener(() => _onQuantityChanged(i));
+        activityQuantityControllers.add(qtyController);
+
         activityNetControllers
             .add(TextEditingController(text: activity.net ?? '0.00'));
         activityCopayControllers
@@ -226,6 +241,36 @@ class ClaimDataNotifier extends ChangeNotifier {
         c.addListener(_onControllerChanged);
       }
       _checkAllBalances();
+    }
+  }
+
+  void _onQuantityChanged(int index) {
+    if (_claimData == null || index >= _claimData!.activities.length) return;
+
+    final originalActivity = _originalActivities[index];
+    final originalQty = int.tryParse(originalActivity.quantity ?? '1') ?? 1;
+    final originalNet = double.tryParse(originalActivity.net ?? '0.00') ?? 0.0;
+
+    final currentQtyController = activityQuantityControllers[index];
+    _claimData!.activities[index].quantity = currentQtyController.text;
+
+    if (originalQty == 0) {
+      notifyListeners();
+      return;
+    }
+
+    final unitPrice = originalNet / originalQty;
+    final newQty = int.tryParse(currentQtyController.text) ?? 0;
+    final newNet = newQty * unitPrice;
+    final newNetText = newNet.toStringAsFixed(2);
+    final netController = activityNetControllers[index];
+
+    _claimData!.activities[index].net = newNetText;
+
+    if (netController.text != newNetText) {
+      netController.text = newNetText;
+    } else {
+      notifyListeners();
     }
   }
 
@@ -355,6 +400,11 @@ class ClaimDataNotifier extends ChangeNotifier {
         await File(outputFile).writeAsString(xmlString);
         onMessage?.call(
             "XML file saved successfully to ${p.basename(outputFile)}", false);
+        _originalActivities =
+            _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
+        _originalDiagnoses =
+            _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
+        notifyListeners();
       } else {
         onMessage?.call("Save operation cancelled.", false);
       }
@@ -467,8 +517,10 @@ class ClaimDataNotifier extends ChangeNotifier {
   }
 
   void updateResubmissionType(String? newType) {
-    if (newType != null && _claimData?.resubmission != null) {
-      _claimData!.resubmission!.type = newType;
+    if (newType == null) return;
+    final resubmission = _claimData?.resubmission;
+    if (resubmission != null) {
+      resubmission.type = newType;
       notifyListeners();
     }
   }
@@ -673,7 +725,11 @@ class ClaimDataNotifier extends ChangeNotifier {
     netController.dispose();
     resubmissionCommentController.dispose();
 
-    for (final c in [...activityNetControllers, ...activityCopayControllers]) {
+    for (final c in [
+      ...activityNetControllers,
+      ...activityCopayControllers,
+      ...activityQuantityControllers
+    ]) {
       c.dispose();
     }
     for (final c in activityDslCodeControllers.values) {

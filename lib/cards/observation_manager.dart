@@ -28,6 +28,7 @@ class _ObservationDialogState extends State<ObservationDialog> {
       barrierDismissible: false,
       builder: (_) => AddEditObservationDialog(
         observation: existingObservation,
+        activity: widget.activity,
       ),
     );
 
@@ -128,7 +129,7 @@ class _ObservationDialogState extends State<ObservationDialog> {
                       ),
                       ...observationsInGroup
                           .map((obs) => _buildObservationTile(obs))
-                          .toList(),
+                          ,
                       const Divider(),
                     ],
                   );
@@ -185,11 +186,13 @@ class _ObservationDialogState extends State<ObservationDialog> {
       child: ListTile(
         leading: Icon(_getIconForType(observation.type)),
         title: Text(observation.code),
-        subtitle: Text(
-          'Value: ${observation.value}',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
+        subtitle: observation.value.isNotEmpty
+            ? Text(
+                'Value: ${observation.value}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              )
+            : null,
         trailing: _buildActionButtons(observation),
       ),
     );
@@ -260,6 +263,8 @@ class _ObservationDialogState extends State<ObservationDialog> {
         return Icons.notes;
       case 'Presenting-Complaint':
         return Icons.emergency_outlined;
+      case 'Universal Dental':
+        return Icons.medical_services_outlined;
       default:
         return Icons.comment_outlined;
     }
@@ -268,7 +273,9 @@ class _ObservationDialogState extends State<ObservationDialog> {
 
 class AddEditObservationDialog extends StatefulWidget {
   final ObservationData? observation;
-  const AddEditObservationDialog({super.key, this.observation});
+  final ActivityData activity;
+  const AddEditObservationDialog(
+      {super.key, this.observation, required this.activity});
 
   @override
   State<AddEditObservationDialog> createState() =>
@@ -290,14 +297,25 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
     'Text',
     'File',
     'Result',
-    'Presenting-Complaint'
+    'Presenting-Complaint',
+    'Universal Dental',
   ];
 
   @override
   void initState() {
     super.initState();
     final obs = widget.observation;
-    _selectedType = obs?.type ?? _observationTypes.first;
+    final isCdtActivity = widget.activity.type == '6';
+
+    _selectedType = obs?.type;
+    if (_selectedType == null) {
+      if (isCdtActivity) {
+        _selectedType = 'Universal Dental';
+      } else {
+        _selectedType = _observationTypes.first;
+      }
+    }
+
     _codeController = TextEditingController(text: obs?.code ?? '');
     _valueController = TextEditingController(text: obs?.value ?? '');
     _valueTypeController = TextEditingController(text: obs?.valueType ?? '');
@@ -341,14 +359,17 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
         return;
       }
 
-      final obsValue =
-          _selectedType == 'File' ? _fileBase64! : _valueController.text;
-
       final newObservation = ObservationData(
         type: _selectedType!,
         code: _codeController.text,
-        value: obsValue,
-        valueType: _valueTypeController.text,
+        value: _selectedType == 'File'
+            ? _fileBase64!
+            : (_selectedType == 'Universal Dental'
+                ? ''
+                : _valueController.text),
+        valueType: _selectedType == 'Universal Dental'
+            ? ''
+            : _valueTypeController.text,
       );
 
       if (widget.observation != null) {
@@ -388,7 +409,7 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: _selectedType,
+                    initialValue: _selectedType,
                     items: _observationTypes
                         .map((type) =>
                             DropdownMenuItem(value: type, child: Text(type)))
@@ -396,12 +417,14 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
                     onChanged: (value) {
                       setState(() {
                         _selectedType = value;
+                        _codeController.clear();
+                        _valueController.clear();
+                        _valueTypeController.clear();
+                        _fileBase64 = null;
+                        _fileName = null;
+
                         if (_selectedType == 'File') {
                           _valueTypeController.text = 'Base64';
-                        } else {
-                          if (widget.observation?.type != _selectedType) {
-                            _valueTypeController.clear();
-                          }
                         }
                       });
                     },
@@ -421,7 +444,7 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
                   const SizedBox(height: 16),
                   if (_selectedType == 'File')
                     _buildFilePicker()
-                  else
+                  else if (_selectedType != 'Universal Dental')
                     TextFormField(
                       controller: _valueController,
                       decoration: const InputDecoration(labelText: 'Value'),
@@ -435,12 +458,15 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
                         }
                       },
                     ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _valueTypeController,
-                    decoration: const InputDecoration(labelText: 'Value Type'),
-                    readOnly: _selectedType == 'File',
-                  ),
+                  if (_selectedType != 'File' &&
+                      _selectedType != 'Universal Dental')
+                    const SizedBox(height: 16),
+                  if (_selectedType != 'Universal Dental')
+                    TextFormField(
+                      controller: _valueTypeController,
+                      decoration: const InputDecoration(labelText: 'Value Type'),
+                      readOnly: _selectedType == 'File',
+                    ),
                 ],
               ),
             ),

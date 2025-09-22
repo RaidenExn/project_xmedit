@@ -235,6 +235,12 @@ class _AppDrawerState extends State<AppDrawer> {
                     runSpacing: 8,
                     children: themeNotifier.availableColors.map((color) {
                       final bool isSelected = themeNotifier.seedColor == color;
+                      final brightness =
+                          ThemeData.estimateBrightnessForColor(color);
+                      final iconColor = brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black;
+
                       return InkWell(
                         onTap: () => themeNotifier.changeSeedColor(color),
                         borderRadius: BorderRadius.circular(20),
@@ -254,8 +260,7 @@ class _AppDrawerState extends State<AppDrawer> {
                                 : null,
                           ),
                           child: isSelected
-                              ? const Icon(Icons.check,
-                                  color: Colors.white, size: 20)
+                              ? Icon(Icons.check, color: iconColor, size: 20)
                               : null,
                         ),
                       );
@@ -323,7 +328,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   subtitle: const Text('Abhijith SS'),
                   trailing: IconButton(
                     icon: const Icon(Icons.open_in_new),
-                    onPressed: () => _launchURL('https://github.com/RaidenExn'),
+                    onPressed: () => _launchURL('https://github.com/RaidenExn/project_xmedit'),
                   ),
                 ),
               ],
