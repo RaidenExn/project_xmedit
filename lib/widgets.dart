@@ -1,6 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:window_manager/window_manager.dart';
+
+class ScrollableOnHover extends StatelessWidget {
+  final Widget child;
+  const ScrollableOnHover({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ScrollConfiguration(
+      behavior: const _DesktopScrollBehavior(),
+      child: child,
+    );
+  }
+}
+
+class _DesktopScrollBehavior extends ScrollBehavior {
+  const _DesktopScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.touch,
+        PointerDeviceKind.stylus,
+      };
+}
 
 class ClaimDataSection extends StatelessWidget {
   final String title;

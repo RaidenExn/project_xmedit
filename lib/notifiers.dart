@@ -59,7 +59,6 @@ class ThemeNotifier extends ChangeNotifier {
     if (colorValue != null) {
       _seedColor = Color(colorValue);
     }
-    notifyListeners();
   }
 
   Future<void> _savePreferences() async {
@@ -226,7 +225,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
         if (activity.type == '8') {
           final controller = TextEditingController(text: activity.code ?? '');
-          controller.addListener(() => activity.code = controller.text);
+          controller.addListener(() => _onDslCodeChanged(i, controller));
           activityDslCodeControllers[activity.stateId] = controller;
         }
       }
@@ -242,6 +241,28 @@ class ClaimDataNotifier extends ChangeNotifier {
       }
       _checkAllBalances();
     }
+  }
+
+  void _onDslCodeChanged(int index, TextEditingController controller) {
+    if (_claimData == null) return;
+
+    final activity = _claimData!.activities[index];
+    final originalActivity = _originalActivities[index];
+
+    activity.code = controller.text;
+
+    final isDslCodeModified = activity.code != originalActivity.code;
+
+    if (activity.type == '8' &&
+        isDslCodeModified &&
+        _claimData!.resubmission?.type != 'correction') {
+      (_claimData!.resubmission ??= ResubmissionData()).type = 'correction';
+      onMessage?.call(
+          'Resubmission type automatically set to "correction" due to DSL code edit.',
+          false);
+    }
+
+    notifyListeners();
   }
 
   void _onQuantityChanged(int index) {
@@ -312,7 +333,7 @@ class ClaimDataNotifier extends ChangeNotifier {
   void _checkAllBalances() => _checkNetBalance();
 
   Future<void> loadXmlFile() async {
-    _setLoading(true);
+    bool loadingStarted = false;
     try {
       final FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -320,6 +341,9 @@ class ClaimDataNotifier extends ChangeNotifier {
       );
 
       if (result != null && result.files.single.path != null) {
+        _setLoading(true);
+        loadingStarted = true;
+        
         final filePath = result.files.single.path!;
         final file = File(filePath);
         final xmlString = await file.readAsString();
@@ -349,7 +373,9 @@ class ClaimDataNotifier extends ChangeNotifier {
     } catch (e) {
       onMessage?.call('An unexpected error occurred: $e', true);
     } finally {
-      _setLoading(false);
+      if (loadingStarted) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -437,24 +463,36 @@ class ClaimDataNotifier extends ChangeNotifier {
     final isUndoing = activity.isDeleted;
 
     if (!isUndoing && transferOnDelete && activity.observations.isNotEmpty) {
-      int nextActivityIndex = -1;
-      for (int i = index + 1; i < _claimData!.activities.length; i++) {
-        if (!_claimData!.activities[i].isDeleted) {
-          nextActivityIndex = i;
-          break;
-        }
-      }
+      const transferableTypes = {
+        'Text',
+        'Presenting-Complaint',
+        'File',
+      };
 
-      if (nextActivityIndex != -1) {
-        final targetActivity = _claimData!.activities[nextActivityIndex];
-        targetActivity.observations.addAll(activity.observations);
-        activity.observations.clear();
-        onMessage?.call(
-            'Observations transferred to activity ${targetActivity.code}.',
-            false);
+      final targetActivity = _claimData!.activities.firstWhereOrNull(
+        (a) => !a.isDeleted && a.stateId != activity.stateId,
+      );
+
+      if (targetActivity != null) {
+        final observationsToTransfer = activity.observations
+            .where((obs) => transferableTypes.contains(obs.type))
+            .toList();
+
+        if (observationsToTransfer.isNotEmpty) {
+          targetActivity.observations.addAll(observationsToTransfer);
+          activity.observations.removeWhere((obs) => transferableTypes.contains(obs.type));
+          onMessage?.call(
+              '${observationsToTransfer.length} observation(s) transferred to activity ${targetActivity.code}.',
+              false);
+        } else {
+          onMessage?.call(
+              'No transferable observations (Text, Complaint, File) found.',
+              true);
+        }
       } else {
         onMessage?.call(
-            'No subsequent activity found. Observations will be deleted.', true);
+            'No other undeleted activity found. Observations will be deleted.',
+            true);
       }
     }
 
