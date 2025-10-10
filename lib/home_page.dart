@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
-// Intents for Keyboard Shortcuts
 class OpenIntent extends Intent {}
 class SaveIntent extends Intent {}
 class SaveAsIntent extends Intent {}
@@ -110,14 +109,22 @@ class _HomePageState extends State<HomePage> with WindowListener {
             title: DragToMoveArea(
               child: SizedBox(
                   width: double.infinity,
-                  child: Text('Project XMEdit - v$_version')),
+                  child: Text('project_xmedit - v$_version')),
             ),
             actions: [
-              TextButton.icon(
+              FilledButton.icon(
                 icon: const Icon(Icons.folder_open_outlined),
                 label: const Text("Open"),
                 onPressed: notifier.loadXmlFile,
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.secondaryContainer,
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
               ),
+              const SizedBox(width: 8),
               TextButton.icon(
                 icon: const Icon(Icons.clear_all),
                 label: const Text("Clear All"),
@@ -218,18 +225,26 @@ class _AppDrawerState extends State<AppDrawer> {
                 const ListTile(
                   title: Text('Appearance'),
                   leading: Icon(Icons.palette_outlined),
+                  dense: true,
                 ),
                 SwitchListTile(
                   title: const Text('Dark Mode'),
                   value: themeNotifier.isDarkMode,
                   onChanged: (value) => themeNotifier.toggleTheme(),
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Text('Theme Color'),
+                  visualDensity: VisualDensity.compact,
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: Text(
+                    'Theme Color',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -240,27 +255,26 @@ class _AppDrawerState extends State<AppDrawer> {
                       final iconColor = brightness == Brightness.dark
                           ? Colors.white
                           : Colors.black;
+                      const double size = 32;
 
                       return InkWell(
                         onTap: () => themeNotifier.changeSeedColor(color),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(size / 2),
                         child: Container(
-                          width: 35,
-                          height: 35,
+                          width: size,
+                          height: size,
                           decoration: BoxDecoration(
                             color: color,
                             shape: BoxShape.circle,
                             border: isSelected
                                 ? Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface,
-                                    width: 3,
-                                  )
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                      width: 3,
+                                    )
                                 : null,
                           ),
                           child: isSelected
-                              ? Icon(Icons.check, color: iconColor, size: 20)
+                              ? Icon(Icons.check, color: iconColor, size: 18)
                               : null,
                         ),
                       );
@@ -278,17 +292,23 @@ class _AppDrawerState extends State<AppDrawer> {
                 const ListTile(
                   title: Text('Visible Cards'),
                   leading: Icon(Icons.view_quilt_outlined),
+                  dense: true,
                 ),
                 ...cardNotifier.visibilities.entries.map((entry) {
                   final key = entry.key;
                   String title = key[0].toUpperCase() + key.substring(1);
                   if (key == 'resubmission & totals') {
-                    title = 'Resubmission';
+                    title = 'Resubmission & Totals';
+                  } else if (key == 'activities') {
+                    title = 'Activities List';
+                  } else if (key == 'details') {
+                    title = 'Claim Details';
                   }
                   return SwitchListTile(
                     title: Text(title),
                     value: entry.value,
                     onChanged: (value) => cardNotifier.toggle(key),
+                    visualDensity: VisualDensity.compact,
                   );
                 }),
               ],
@@ -320,6 +340,7 @@ class _AppDrawerState extends State<AppDrawer> {
                           'https://github.com/RaidenExn/project_xmedit/issues'),
                     ),
                   ],
+                  dense: true,
                   child: const Text('About this app'),
                 ),
                 ListTile(
@@ -330,6 +351,7 @@ class _AppDrawerState extends State<AppDrawer> {
                     icon: const Icon(Icons.open_in_new),
                     onPressed: () => _launchURL('https://github.com/RaidenExn/project_xmedit'),
                   ),
+                  dense: true,
                 ),
               ],
             ),

@@ -36,7 +36,7 @@ Color? _getRowColor({
     return Theme.of(context)
         .colorScheme
         .surfaceContainerHighest
-        .withAlpha(128);
+        .withAlpha((255 * 0.5).round());
   }
   return null;
 }
@@ -321,12 +321,13 @@ class _ActivityDataRow extends StatelessWidget {
         ),
         Expanded(
           flex: _activityColumnFlex['desc']!,
-          child: Center(
+          child: Align( // Added Align to wrap the text
+            alignment: Alignment.centerLeft, // Aligns content to the left
             child: Text(
               description,
               style: textStyle,
               overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.left, // Changed to TextAlign.left
             ),
           ),
         ),
@@ -431,21 +432,38 @@ class _EditableNumberCell extends StatelessWidget {
   const _EditableNumberCell({required this.controller, required this.enabled});
 
   @override
-  Widget build(BuildContext context) => TextFormField(
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isEnabled = enabled;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? theme.colorScheme.surfaceContainerHighest.withAlpha((255 * 0.8).round())
+            : theme.colorScheme.surfaceContainerHighest.withAlpha((255 * 0.4).round()),
+        borderRadius: BorderRadius.circular(6.0),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: TextFormField(
         controller: controller,
-        enabled: enabled,
+        enabled: isEnabled,
         textAlign: TextAlign.right,
-        style: const TextStyle(fontSize: 14),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 14,
+          color: isEnabled ? theme.colorScheme.onSurface : theme.disabledColor,
+        ),
         decoration: const InputDecoration(
-          border: OutlineInputBorder(),
+          border: InputBorder.none,
           isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          contentPadding: EdgeInsets.symmetric(vertical: 6),
         ),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [
           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
         ],
-      );
+      ),
+    );
+  }
 }
 
 class ControlsResubmissionCard extends StatelessWidget {
@@ -456,6 +474,7 @@ class ControlsResubmissionCard extends StatelessWidget {
     final notifier = context.watch<ClaimDataNotifier>();
     final selectedType =
         notifier.claimData?.resubmission?.type ?? 'internal complaint';
+    final theme = Theme.of(context);
 
     const List<String> resubmissionOptions = [
       "correction",
@@ -468,40 +487,68 @@ class ControlsResubmissionCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: resubmissionOptions.map((option) {
             final bool isSelected = option == selectedType;
+            final Color cardColor = isSelected
+                ? theme.colorScheme.secondaryContainer
+                : theme.colorScheme.surfaceContainer;
+            final Color textColor = isSelected
+                ? theme.colorScheme.onSecondaryContainer
+                : theme.colorScheme.onSurface;
+            
+            final Color borderColor = isSelected
+                ? theme.colorScheme.secondaryContainer
+                : theme.colorScheme.outlineVariant.withAlpha(128);
 
             return Expanded(
-              child: RadioListTile<String>(
-                title: Text(
-                  option,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
+              child: Padding(
+                padding: EdgeInsets.only(right: option == resubmissionOptions.last ? 0 : 8.0),
+                child: Card(
+                  color: cardColor,
+                  elevation: 0,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                    side: BorderSide(
+                      color: borderColor,
+                      width: 1.0, 
+                    ),
                   ),
-                ),
-                value: option,
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                groupValue: selectedType,
-                onChanged: notifier.updateResubmissionType,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
+                  child: InkWell(
+                    onTap: () => notifier.updateResubmissionType(option),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(
+                        option,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: textColor,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
+                  ),
                 ),
               ),
             );
           }).toList(),
         ),
-        const SizedBox(height: 10),
-        TextFormField(
-          controller: notifier.resubmissionCommentController,
-          decoration: const InputDecoration(
-            labelText: 'Resubmission Comment',
-            border: OutlineInputBorder(),
+        const SizedBox(height: 8), 
+        ScrollableOnHover(
+          child: TextFormField(
+            controller: notifier.resubmissionCommentController,
+            decoration: const InputDecoration(
+              labelText: 'Resubmission Comment',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              isDense: true,
+            ),
+            maxLines: 3, 
+            minLines: 3, 
           ),
-          maxLines: 2,
-          minLines: 2,
         ),
       ],
     );
@@ -589,13 +636,14 @@ class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.notifier.isDiagnosisEditingEnabled;
+    final theme = Theme.of(context);
     final textStyle =
-        TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface);
-    final String principalId = widget.notifier.claimData!.diagnoses
-        .firstWhere((d) => d.type == 'Principal',
-            orElse: () => widget.notifier.claimData!.diagnoses.first)
-        .id;
+        TextStyle(fontSize: 14, color: theme.colorScheme.onSurface);
     final isPrincipal = widget.diag.type == 'Principal';
+
+    final Color iconColor = isEditing
+        ? (isPrincipal ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant)
+        : theme.disabledColor;
 
     return FutureBuilder<String?>(
       future: _descriptionFuture,
@@ -612,28 +660,39 @@ class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
                 width: 100,
                 child: Text(widget.diag.code ?? '', style: textStyle)),
             Expanded(
-              child: Center(
+              child: Align( // Added Align to wrap the text
+                alignment: Alignment.centerLeft, // Aligns content to the left
                 child: Text(
                   description,
                   style: textStyle,
                   overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
+                  textAlign: TextAlign.left, // Changed to TextAlign.left
                 ),
               ),
             ),
             SizedBox(
               width: 80,
               child: Center(
-                child: Radio<String>(
-                  value: widget.diag.id,
-                  groupValue: principalId,
-                  onChanged: isEditing
-                      ? (value) {
-                          if (value != null) {
-                            widget.notifier.setPrincipalDiagnosis(value);
-                          }
-                        }
-                      : null,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                  child: IconButton(
+                    key: ValueKey(isPrincipal),
+                    icon: Icon(
+                      isPrincipal
+                          ? Icons.check_circle_rounded
+                          : Icons.circle_outlined,
+                      size: 20,
+                      color: iconColor,
+                    ),
+                    onPressed: isEditing
+                        ? () => widget.notifier.setPrincipalDiagnosis(widget.diag.id)
+                        : null,
+                    splashRadius: 20,
+                  ),
                 ),
               ),
             ),
@@ -642,7 +701,7 @@ class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
               child: Center(
                 child: IconButton(
                   icon: const Icon(Icons.delete_outline, size: 18),
-                  color: Theme.of(context).colorScheme.error,
+                  color: isEditing ? theme.colorScheme.error : theme.disabledColor,
                   onPressed: isEditing
                       ? () => widget.notifier.deleteDiagnosis(widget.diag.id)
                       : null,
@@ -755,13 +814,13 @@ class TotalsCard extends StatelessWidget {
           difference: notifier.grossDifference,
           onChanged: () => notifier.onTotalsEdited('gross'),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         _FinancialInputRow(
           label: 'PatientShare:',
           controller: notifier.patientShareController,
           onChanged: () => notifier.onTotalsEdited('pshare'),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         _FinancialInputRow(
           label: 'Net:',
           controller: notifier.netController,
@@ -790,36 +849,50 @@ class _FinancialInputRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasDiff = difference != null && difference!.isNotEmpty;
     final theme = Theme.of(context);
+    
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-            width: 90, child: Text(label, style: theme.textTheme.titleSmall)),
+            width: 90,
+            child: Text(label, style: theme.textTheme.titleSmall)),
+        
         Expanded(
-          child: TextFormField(
-            controller: controller,
-            onChanged: (_) => onChanged(),
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-              isDense: true,
-              enabledBorder: hasDiff
-                  ? OutlineInputBorder(
-                      borderSide: BorderSide(color: theme.colorScheme.error))
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withAlpha((255 * 0.5).round()),
+              borderRadius: BorderRadius.circular(8.0),
+              border: hasDiff
+                  ? Border.all(color: theme.colorScheme.error, width: 1.5)
                   : null,
             ),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-            ],
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: TextFormField(
+              controller: controller,
+              onChanged: (_) => onChanged(),
+              textAlign: TextAlign.right,
+              style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                isDense: true,
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+              ],
+            ),
           ),
         ),
+        
         if (hasDiff)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            padding: const EdgeInsets.symmetric(horizontal: 6.0),
             child: Text(difference!,
-                style: TextStyle(color: theme.colorScheme.error)),
+                style: TextStyle(color: theme.colorScheme.error, fontSize: 12)),
           ),
+        
         IconButton(
           icon: const Icon(Icons.copy, size: 16),
           onPressed: () {
