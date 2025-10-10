@@ -349,7 +349,7 @@ class _AppDrawerState extends State<AppDrawer> {
                   subtitle: const Text('Abhijith SS'),
                   trailing: IconButton(
                     icon: const Icon(Icons.open_in_new),
-                    onPressed: () => _launchURL('https://github.com/RaidenExn/project_xmedit'),
+                    onPressed: () => _launchURL('https://raidenexn.github.io/project_xmedit/'),
                   ),
                   dense: true,
                 ),

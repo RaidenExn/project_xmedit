@@ -7,69 +7,83 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <header class="hero">
+    <header class="header">
         <div class="container">
-            <div class="header-nav">
+            <nav class="header-nav">
                 <span class="app-title">Project XMEdit</span>
-                <a href="https://github.com/RaidenExn/project_xmedit" target="_blank" class="header-button">View on GitHub</a>
-            </div>
-            
-            <h1>Project XMEdit</h1>
-            <p class="subtitle">A desktop application for manually editing specific DHPO XML medical resubmission claim files, designed to streamline the claim correction process.</p>
-            <a href="https://github.com/RaidenExn/project_xmedit/releases/latest" class="button">Download Latest Version</a>
+                <div class="nav-buttons">
+                    <a href="https://github.com/RaidenExn/project_xmedit" target="_blank" class="header-button">View on GitHub</a>
+                    <button id="theme-toggle" title="Toggle theme">🌙</button>
+                </div>
+            </nav>
         </div>
     </header>
 
-    <main class="container">
-        <section class="features">
-            <h2>Features</h2>
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>A Modern XML Editor, Reimagined</h1>
+                <p class="subtitle">Project XMEdit is a powerful desktop app for editing DHPO medical resubmission files, built to make claim corrections faster and more intuitive.</p>
+                <a href="https://github.com/RaidenExn/project_xmedit/releases/latest" class="button">Download Latest Version</a>
+            </div>
+        </section>
+
+        <section class="features container">
+            <h2>Designed for Efficiency</h2>
             <div class="card-grid">
                 <div class="card">
-                    <h3>Comprehensive Editing</h3>
+                    <h3>✍️ Comprehensive Editing</h3>
                     <p>Modify claim details, totals, activities, and resubmission data with a user-friendly interface.</p>
                 </div>
                 <div class="card">
-                    <h3>Diagnosis Management</h3>
-                    <p>Add/delete diagnoses with a built-in ICD-10 code and description search.</p>
+                    <h3>⚕️ Diagnosis Management</h3>
+                    <p>Add and delete diagnoses with a built-in ICD-10 code and description search.</p>
                 </div>
                 <div class="card">
-                    <h3>Observation Manager</h3>
+                    <h3>📎 Observation Manager</h3>
                     <p>Full CRUD support for observations, including file attachments with drag-and-drop.</p>
                 </div>
                  <div class="card">
-                    <h3>Bulk Operations</h3>
+                    <h3>🚀 Bulk Operations</h3>
                     <p>Merge text-based observations and transfer observations from deleted activities.</p>
                 </div>
                  <div class="card">
-                    <h3>Customizable UI</h3>
+                    <h3>🎨 Customizable UI</h3>
                     <p>Supports both Dark and Light modes with multiple theme colors to fit your workflow.</p>
+                </div>
+                 <div class="card">
+                    <h3>✅ Smart Validation</h3>
+                    <p>Automatically validates data entry to minimize errors before saving the file.</p>
                 </div>
             </div>
         </section>
 
-        <section class="installation">
-            <h2>Installation</h2>
-            <div class="card">
-                <h3>1. Install Required Runtime</h3>
-                <p>This application requires the Microsoft Visual C++ Redistributable. Please download and install the latest X64 version from the official Microsoft website.</p>
-                <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe" class="button">Download Visual C++ Redistributable</a>
-            </div>
-             <div class="card">
-                <h3>2. Unzip and Run</h3>
-                <ol>
-                    <li>Unzip the downloaded release file from the <a href="https://github.com/RaidenExn/project_xmedit/releases/latest">Releases Page</a>.</li>
-                    <li>Open the folder and run <strong>project_xmedit.exe</strong>.</li>
-                </ol>
+        <section class="installation container">
+            <h2>Getting Started</h2>
+            <div class="card-grid">
+                 <div class="card">
+                    <h3>1. Install Runtime</h3>
+                    <p>This application requires the Microsoft Visual C++ Redistributable. Find the latest X64 version on the official page.</p>
+                    <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version" target="_blank" class="button">Find VC++ Redistributable</a>
+                </div>
+                 <div class="card">
+                    <h3>2. Unzip and Run</h3>
+                    <ol>
+                        <li>Download the latest package from the <a href="https://github.com/RaidenExn/project_xmedit/releases/latest">Releases Page</a>.</li>
+                        <li>Unzip the downloaded file.</li>
+                        <li>Run <strong>project_xmedit.exe</strong>.</li>
+                    </ol>
+                </div>
             </div>
         </section>
 
-        <section class="screenshot-section">
-            <h2>Screenshot</h2>
-            <img src="assets/screenshot1.png" alt="Project XMEdit Screenshot" class="screenshot-img">
+        <section class="screenshot-section container">
+            <h2>Application Preview</h2>
+            <img src="assets/ss_light.png" alt="Project XMEdit Screenshot" class="screenshot-img" id="screenshot-img">
         </section>
     </main>
 
@@ -79,5 +93,6 @@
         </div>
     </footer>
 
+    <script src="script.js"></script>
 </body>
 </html>
