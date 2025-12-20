@@ -65,8 +65,11 @@ class ClaimDataSection extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
             color: colors.surfaceContainer,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8.0,
+              runSpacing: 8.0,
               children: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -87,8 +90,11 @@ class ClaimDataSection extends StatelessWidget {
                   ],
                 ),
                 if (actions != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Wrap(
+                    spacing: 4.0,
+                    runSpacing: 4.0,
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: actions!,
                   )
               ],
@@ -203,4 +209,30 @@ class WindowButtons extends StatelessWidget {
       ),
     );
   }
+}
+
+class HeaderActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final Color? color;
+
+  const HeaderActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.onPressed,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+        style: TextButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          foregroundColor: color,
+        ),
+        icon: Icon(icon, size: 16),
+        label: Text(label),
+        onPressed: onPressed,
+      );
 }
