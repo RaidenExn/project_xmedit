@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter/foundation.dart';
 
 class ScrollableOnHover extends StatelessWidget {
   final Widget child;
@@ -199,6 +200,7 @@ class WindowButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) return const SizedBox.shrink();
     final theme = Theme.of(context);
     return SizedBox(
       width: 138,

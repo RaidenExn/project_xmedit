@@ -1,4 +1,7 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'package:universal_html/html.dart' as html;
+import 'dart:convert';
 import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -258,13 +261,25 @@ class ClaimDataNotifier extends ChangeNotifier {
         allowedExtensions: ['xml'],
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null) {
         _setLoading(true);
         loadingStarted = true;
 
-        final filePath = result.files.single.path!;
-        final file = File(filePath);
-        final xmlString = await file.readAsString();
+        String xmlString;
+        String? filePath;
+
+        if (kIsWeb) {
+          final bytes = result.files.single.bytes!;
+          xmlString = utf8.decode(bytes);
+          filePath = result.files.single.name;
+        } else if (result.files.single.path != null) {
+          filePath = result.files.single.path!;
+          final file = File(filePath);
+          xmlString = await file.readAsString();
+        } else {
+          onMessage?.call('Error: File path is null', true);
+          return;
+        }
 
         final claimData = await compute(parseXmlInBackground, xmlString);
 
@@ -297,7 +312,8 @@ class ClaimDataNotifier extends ChangeNotifier {
     }
   }
 
-  Future<void> saveXmlFile({bool saveAs = false}) async {
+  Future<void> saveXmlFile(
+      {bool saveAs = false, String? customFileName}) async {
     if (_claimData == null) {
       onMessage?.call('No XML data loaded.', true);
       return;
@@ -325,39 +341,59 @@ class ClaimDataNotifier extends ChangeNotifier {
       final xmlString = _xmlHandler
           .createXmlDocument(_claimData!)
           .toXmlString(pretty: true, indent: '  ');
-      String? outputFile;
+
       final claimId = _claimData!.claimId ?? "UNKNOWN";
       final sanitizedId = claimId.replaceAll(RegExp(r'[^\w-]'), '_');
       final baseFileName = _originalFilePath != null
           ? p.basename(_originalFilePath!)
           : 'output.xml';
-      final finalFileName =
-          shouldRenameFile ? 'claim_$sanitizedId.xml' : baseFileName;
-      if (saveAs) {
-        outputFile = await FilePicker.platform.saveFile(
-          dialogTitle: 'Please select an output file:',
-          fileName: finalFileName,
-          type: FileType.custom,
-          allowedExtensions: ['xml'],
-        );
-      } else {
-        final downloadsDir = await getDownloadsDirectory();
-        if (downloadsDir == null) {
-          throw Exception("Could not find Downloads directory.");
-        }
-        outputFile = p.join(downloadsDir.path, finalFileName);
-      }
-      if (outputFile != null) {
-        await File(outputFile).writeAsString(xmlString);
-        onMessage?.call(
-            "XML file saved successfully to ${p.basename(outputFile)}", false);
+      final finalFileName = customFileName ??
+          (shouldRenameFile ? 'claim_$sanitizedId.xml' : baseFileName);
+
+      if (kIsWeb) {
+        final bytes = utf8.encode(xmlString);
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..target = 'blank'
+          ..download = finalFileName;
+        anchor.click();
+        html.Url.revokeObjectUrl(url);
+        onMessage?.call("Download started for $finalFileName", false);
         _originalActivities =
             _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
         _originalDiagnoses =
             _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
         notifyListeners();
       } else {
-        onMessage?.call("Save operation cancelled.", false);
+        String? outputFile;
+        if (saveAs) {
+          outputFile = await FilePicker.platform.saveFile(
+            dialogTitle: 'Please select an output file:',
+            fileName: finalFileName,
+            type: FileType.custom,
+            allowedExtensions: ['xml'],
+          );
+        } else {
+          final downloadsDir = await getDownloadsDirectory();
+          if (downloadsDir == null) {
+            throw Exception("Could not find Downloads directory.");
+          }
+          outputFile = p.join(downloadsDir.path, finalFileName);
+        }
+        if (outputFile != null) {
+          await File(outputFile).writeAsString(xmlString);
+          onMessage?.call(
+              "XML file saved successfully to ${p.basename(outputFile)}",
+              false);
+          _originalActivities =
+              _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
+          _originalDiagnoses =
+              _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
+          notifyListeners();
+        } else {
+          onMessage?.call("Save operation cancelled.", false);
+        }
       }
     } catch (e) {
       onMessage?.call("Error saving file: $e", true);
@@ -596,17 +632,27 @@ class ClaimDataNotifier extends ChangeNotifier {
         allowedExtensions: ['pdf'],
       );
 
-      if (result != null && result.files.single.path != null) {
-        final String base64String =
-            await AttachmentHelper.encodeFromFile(result.files.single.path!);
+      if (result != null) {
+        String? base64String;
+        if (kIsWeb) {
+          final bytes = result.files.single.bytes!;
+          base64String = AttachmentHelper.encodeFromBytes(bytes);
+        } else if (result.files.single.path != null) {
+          base64String =
+              await AttachmentHelper.encodeFromFile(result.files.single.path!);
+        }
 
-        if (_claimData?.resubmission != null) {
-          _claimData!.resubmission!.attachment = base64String;
-          onMessage?.call('Attachment updated successfully.', false);
-          notifyListeners();
+        if (base64String != null) {
+          if (_claimData?.resubmission != null) {
+            _claimData!.resubmission!.attachment = base64String;
+            onMessage?.call('Attachment updated successfully.', false);
+            notifyListeners();
+          } else {
+            onMessage?.call(
+                'Cannot add attachment, no resubmission data exists.', true);
+          }
         } else {
-          onMessage?.call(
-              'Cannot add attachment, no resubmission data exists.', true);
+          onMessage?.call('Error processing file attachment.', true);
         }
       } else {
         onMessage?.call('File selection cancelled.', false);

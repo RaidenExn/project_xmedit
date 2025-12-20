@@ -1,6 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
+import 'package:universal_io/io.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'package:universal_html/html.dart' as html;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -184,7 +186,8 @@ ClaimData parseXmlInBackground(String xmlString) {
       claimElement.findAllElements('Weight').firstOrNull?.innerText;
   claimData.emiratesIDNumber =
       claimElement.findAllElements('EmiratesIDNumber').firstOrNull?.innerText;
-  claimData.gross = claimElement.findAllElements('Gross').firstOrNull?.innerText;
+  claimData.gross =
+      claimElement.findAllElements('Gross').firstOrNull?.innerText;
   claimData.patientShare =
       claimElement.findAllElements('PatientShare').firstOrNull?.innerText;
   claimData.net = claimElement.findAllElements('Net').firstOrNull?.innerText;
@@ -312,8 +315,8 @@ class XmlHandler {
     addChild('EmiratesIDNumber',
         _buildElement('EmiratesIDNumber', data.emiratesIDNumber));
     addChild('Gross', _buildElement('Gross', data.gross ?? '0'));
-    addChild(
-        'PatientShare', _buildElement('PatientShare', data.patientShare ?? '0'));
+    addChild('PatientShare',
+        _buildElement('PatientShare', data.patientShare ?? '0'));
     addChild('Net', _buildElement('Net', data.net ?? '0'));
 
     final encounter = XmlElement(XmlName('Encounter'), [], [
@@ -395,13 +398,13 @@ class XmlHandler {
 
     final claim = XmlElement(XmlName('Claim'), [], orderedClaimChildren);
 
-    final submission = XmlElement(
-        XmlName('Claim.Submission'),
-        [
-          XmlAttribute(
-              XmlName('xmlns:xsi'), 'http://www.w3.org/2001/XMLSchema-instance')
-        ],
-        [header, claim]);
+    final submission = XmlElement(XmlName('Claim.Submission'), [
+      XmlAttribute(
+          XmlName('xmlns:xsi'), 'http://www.w3.org/2001/XMLSchema-instance')
+    ], [
+      header,
+      claim
+    ]);
 
     return XmlDocument([processingInstruction, submission]);
   }
@@ -409,6 +412,11 @@ class XmlHandler {
 
 class AttachmentHelper {
   static Future<String> encodeFromFile(String filePath) async {
+    // This method handles file paths (Desktop)
+    if (kIsWeb) {
+      throw UnsupportedError(
+          'encodeFromFile is not supported on Web. Use encodeFromBytes.');
+    }
     final file = File(filePath);
     if (!await file.exists()) {
       throw Exception('File not found at path: $filePath');
@@ -417,7 +425,12 @@ class AttachmentHelper {
     return base64Encode(fileBytes);
   }
 
-  static Future<File> decodeToTempFile(String base64Content) async {
+  static String encodeFromBytes(Uint8List bytes) {
+    return base64Encode(bytes);
+  }
+
+  static Future<File?> decodeToTempFile(String base64Content) async {
+    if (kIsWeb) return null;
     final Uint8List bytes = base64Decode(base64Content);
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/attachment_preview.pdf');
@@ -428,9 +441,23 @@ class AttachmentHelper {
   static Future<void> viewDecodedFile(
       String base64Content, BuildContext context) async {
     try {
-      final file = await decodeToTempFile(base64Content);
-      if (!await launchUrl(file.uri, mode: LaunchMode.externalApplication)) {
-        throw Exception('Could not launch ${file.uri}');
+      if (kIsWeb) {
+        final bytes = base64Decode(base64Content);
+        final blob = html.Blob([bytes], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)..target = '_blank';
+        html.document.body?.append(anchor);
+        anchor.click();
+        anchor.remove();
+        html.Url.revokeObjectUrl(url);
+      } else {
+        final file = await decodeToTempFile(base64Content);
+        if (file != null) {
+          if (!await launchUrl(file.uri,
+              mode: LaunchMode.externalApplication)) {
+            throw Exception('Could not launch ${file.uri}');
+          }
+        }
       }
     } catch (e) {
       if (context.mounted) {
