@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -28,7 +29,9 @@ class _HomePageState extends State<HomePage> with WindowListener {
   @override
   void initState() {
     super.initState();
-    windowManager.addListener(this);
+    if (!kIsWeb) {
+      windowManager.addListener(this);
+    }
     _initPackageInfo();
   }
 
@@ -43,7 +46,9 @@ class _HomePageState extends State<HomePage> with WindowListener {
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
+    if (!kIsWeb) {
+      windowManager.removeListener(this);
+    }
     super.dispose();
   }
 
@@ -78,10 +83,59 @@ class _HomePageState extends State<HomePage> with WindowListener {
     };
   }
 
+  Future<void> _promptForFileName(ClaimDataNotifier notifier) async {
+    String? fileName = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        String input = '';
+        return AlertDialog(
+          title: const Text('Save As'),
+          content: TextField(
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'File Name',
+              hintText: 'example.xml',
+            ),
+            onChanged: (value) => input = value,
+            onSubmitted: (value) => Navigator.pop(context, value),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, input),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (fileName != null && fileName.isNotEmpty) {
+      if (!fileName.toLowerCase().endsWith('.xml')) {
+        fileName = '$fileName.xml';
+      }
+      notifier.saveXmlFile(saveAs: true, customFileName: fileName);
+    }
+  }
+
+  void _handleSaveAs(ClaimDataNotifier notifier) {
+    if (kIsWeb) {
+      _promptForFileName(notifier);
+    } else {
+      notifier.saveXmlFile(saveAs: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<ClaimDataNotifier>();
     final bool isDataLoaded = notifier.claimData != null;
+
+    final titleContent = SizedBox(
+        width: double.infinity, child: Text('project_xmedit - v$_version'));
 
     return Actions(
       actions: <Type, Action<Intent>>{
@@ -93,8 +147,7 @@ class _HomePageState extends State<HomePage> with WindowListener {
               isDataLoaded ? notifier.saveXmlFile(saveAs: false) : null,
         ),
         SaveAsIntent: CallbackAction<SaveAsIntent>(
-          onInvoke: (intent) =>
-              isDataLoaded ? notifier.saveXmlFile(saveAs: true) : null,
+          onInvoke: (intent) => isDataLoaded ? _handleSaveAs(notifier) : null,
         ),
       },
       child: Shortcuts(
@@ -108,11 +161,7 @@ class _HomePageState extends State<HomePage> with WindowListener {
         },
         child: Scaffold(
           appBar: AppBar(
-            title: DragToMoveArea(
-              child: SizedBox(
-                  width: double.infinity,
-                  child: Text('project_xmedit - v$_version')),
-            ),
+            title: kIsWeb ? titleContent : DragToMoveArea(child: titleContent),
             actions: [
               FilledButton.icon(
                 icon: const Icon(Icons.folder_open_outlined),
@@ -154,9 +203,7 @@ class _HomePageState extends State<HomePage> with WindowListener {
               ),
               const SizedBox(width: 8),
               TextButton(
-                onPressed: isDataLoaded
-                    ? () => notifier.saveXmlFile(saveAs: true)
-                    : null,
+                onPressed: isDataLoaded ? () => _handleSaveAs(notifier) : null,
                 child: const Text("Save As..."),
               ),
               const SizedBox(width: 8),

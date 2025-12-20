@@ -5,26 +5,33 @@ import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'package:flutter/foundation.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  sqfliteFfiInit();
-  databaseFactory = databaseFactoryFfi;
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+  } else {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
 
-  await windowManager.ensureInitialized();
+    await windowManager.ensureInitialized();
 
-  const windowOptions = WindowOptions(
-    size: Size(1200, 800),
-    minimumSize: Size(1150, 700),
-    center: true,
-    title: 'Project XMEdit',
-    titleBarStyle: TitleBarStyle.hidden,
-  );
+    const windowOptions = WindowOptions(
+      size: Size(1200, 800),
+      minimumSize: Size(1150, 700),
+      center: true,
+      title: 'Project XMEdit',
+      titleBarStyle: TitleBarStyle.hidden,
+    );
 
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
 
   runApp(const MyApp());
 }
