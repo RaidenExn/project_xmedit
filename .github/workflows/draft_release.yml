@@ -2,92 +2,81 @@ name: Draft Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release Version (e.g., v1.0.0)'
-        required: true
-        default: 'v1.0.0-draft'
 
 permissions:
   contents: write
 
 jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | cut -d ' ' -f 2 | cut -d '+' -f 1)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          draft: true
+          prerelease: false
+
   build-windows:
-    name: Build Windows
+    needs: prepare-release
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
       
-      - name: Enable Windows Desktop
+      - name: Enable Desktop
         run: flutter config --enable-windows-desktop
 
-      - name: Get Dependencies
-        run: flutter pub get
+      - run: flutter pub get
 
-      - name: Build Windows Release
+      - name: Build Windows
         run: flutter build windows --release
 
-      - name: Compress Windows Build
-        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "${{ inputs.version }}-Windows-x64.zip"
+      - name: Compress
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "${{ needs.prepare-release.outputs.version }}-Windows-x64.zip"
 
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: "${{ inputs.version }}-Windows-x64.zip"
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ needs.prepare-release.outputs.version }} "${{ needs.prepare-release.outputs.version }}-Windows-x64.zip" --clobber
 
   build-web:
-    name: Build Web
+    needs: prepare-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
-      - name: Get Dependencies
-        run: flutter pub get
-        
-      # Setup web binaries for sqflite if needed (replicating local fix setup)
+      - run: flutter pub get
+      
       - name: Setup Web Binaries
         run: dart run sqflite_common_ffi_web:setup
 
-      - name: Build Web Release
+      - name: Build Web
         run: flutter build web --release
 
-      - name: Compress Web Build
-        run: zip -r "${{ inputs.version }}-Web.zip" build/web
+      - name: Compress
+        run: zip -r "${{ needs.prepare-release.outputs.version }}-Web.zip" build/web
 
-      - name: Upload Web Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-build
-          path: "${{ inputs.version }}-Web.zip"
-
-  create-release:
-    name: Create Draft Release
-    needs: [build-windows, build-web]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: windows-build
-          
-      - uses: actions/download-artifact@v4
-        with:
-          name: web-build
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ inputs.version }}
-          name: Release ${{ inputs.version }}
-          draft: true
-          files: |
-            ${{ inputs.version }}-Windows-x64.zip
-            ${{ inputs.version }}-Web.zip
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ needs.prepare-release.outputs.version }} "${{ needs.prepare-release.outputs.version }}-Web.zip" --clobber
