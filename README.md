@@ -40,5 +40,5 @@ This application requires the Microsoft Visual C++ Redistributable to run.
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/project_xmedit.git
+git clone https://github.com/RaidenExn/project_xmedit.git
 cd project_xmedit
