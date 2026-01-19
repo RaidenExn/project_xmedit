@@ -13,21 +13,25 @@ class ClaimDetailsCard extends StatelessWidget {
     if (claimData == null) return const SizedBox.shrink();
 
     return ScrollableOnHover(
-      child: Wrap(
-        spacing: 8.0,
-        runSpacing: 8.0,
-        alignment: WrapAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DataFieldWithCopy(label: "Claim ID", value: claimData.claimId ?? ''),
+          const SizedBox(width: 8.0),
           DataFieldWithCopy(
               label: "Member ID", value: claimData.memberID ?? ''),
+          const SizedBox(width: 8.0),
           SimpleDataField(label: "Sender ID", value: claimData.senderID ?? ''),
+          const SizedBox(width: 8.0),
           SimpleDataField(label: "Payer ID", value: claimData.payerID ?? ''),
+          const SizedBox(width: 8.0),
           SimpleDataField(
               label: "Receiver ID", value: claimData.receiverID ?? ''),
+          const SizedBox(width: 8.0),
           SimpleDataField(
               label: "Transaction Date",
               value: claimData.transactionDate ?? ''),
+          const SizedBox(width: 8.0),
           SimpleDataField(label: "Start Date", value: claimData.start ?? ''),
         ],
       ),

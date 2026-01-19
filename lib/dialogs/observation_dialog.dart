@@ -4,7 +4,8 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:project_xmedit/notifiers.dart';
-import 'package:project_xmedit/xml_handler.dart';
+import 'package:project_xmedit/models/claim_models.dart';
+import 'package:project_xmedit/utils/attachment_helper.dart';
 import 'package:path/path.dart' as p;
 
 class ObservationDialog extends StatefulWidget {
@@ -73,8 +74,8 @@ class _ObservationDialogState extends State<ObservationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final groupedObservations =
-        groupBy(widget.activity.observations, (ObservationData obs) => obs.type);
+    final groupedObservations = groupBy(
+        widget.activity.observations, (ObservationData obs) => obs.type);
     final groupKeys = groupedObservations.keys.toList();
 
     return AlertDialog(
@@ -89,9 +90,9 @@ class _ObservationDialogState extends State<ObservationDialog> {
                 itemBuilder: (context, index) {
                   final groupType = groupKeys[index];
                   final observationsInGroup = groupedObservations[groupType]!;
-                  final isMergeable =
-                      (groupType == 'Text' || groupType == 'Presenting-Complaint') &&
-                          observationsInGroup.length > 1;
+                  final isMergeable = (groupType == 'Text' ||
+                          groupType == 'Presenting-Complaint') &&
+                      observationsInGroup.length > 1;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,8 +129,7 @@ class _ObservationDialogState extends State<ObservationDialog> {
                         ),
                       ),
                       ...observationsInGroup
-                          .map((obs) => _buildObservationTile(obs))
-                          ,
+                          .map((obs) => _buildObservationTile(obs)),
                       const Divider(),
                     ],
                   );
@@ -464,7 +464,8 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
                   if (_selectedType != 'Universal Dental')
                     TextFormField(
                       controller: _valueTypeController,
-                      decoration: const InputDecoration(labelText: 'Value Type'),
+                      decoration:
+                          const InputDecoration(labelText: 'Value Type'),
                       readOnly: _selectedType == 'File',
                     ),
                 ],
@@ -491,8 +492,8 @@ class _AddEditObservationDialogState extends State<AddEditObservationDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Attachment (Select file or drop on window)',
-            style: TextStyle(
-                color: Theme.of(context).textTheme.bodySmall?.color)),
+            style:
+                TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
         const SizedBox(height: 8),
         Row(
           children: [

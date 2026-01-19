@@ -10,10 +10,11 @@ import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:project_xmedit/database_helper.dart';
-import 'package:project_xmedit/xml_handler.dart';
+import 'package:project_xmedit/models/claim_models.dart';
+import 'package:project_xmedit/services/xml_service.dart';
+import 'package:project_xmedit/utils/attachment_helper.dart';
 
 class ClaimDataNotifier extends ChangeNotifier {
-  final XmlHandler _xmlHandler = XmlHandler();
   final DatabaseHelper _dbHelper = DatabaseHelper();
   ClaimData? _claimData;
   List<DiagnosisData> _originalDiagnoses = [];
@@ -38,11 +39,12 @@ class ClaimDataNotifier extends ChangeNotifier {
   final TextEditingController resubmissionCommentController =
       TextEditingController();
 
-  List<TextEditingController> activityNetControllers = [];
-  List<TextEditingController> activityCopayControllers = [];
-  List<TextEditingController> activityQuantityControllers = [];
-  List<TextEditingController> activityPriorAuthControllers = []; // Added
-  Map<String, TextEditingController> activityDslCodeControllers = {};
+  List<TextEditingController> activityNetControllers = []; // Deprecated
+  List<TextEditingController> activityCopayControllers = []; // Deprecated
+  List<TextEditingController> activityQuantityControllers = []; // Deprecated
+  List<TextEditingController> activityPriorAuthControllers = []; // Deprecated
+  Map<String, TextEditingController> activityDslCodeControllers =
+      {}; // Deprecated
 
   ClaimDataNotifier() {
     _dbHelper.database;
@@ -75,36 +77,14 @@ class ClaimDataNotifier extends ChangeNotifier {
   }
 
   void _updateControllers() {
-    final oldNetControllers = activityNetControllers;
-    final oldCopayControllers = activityCopayControllers;
-    final oldDslCodeControllers = activityDslCodeControllers;
-    final oldQuantityControllers = activityQuantityControllers;
-    final oldPriorAuthControllers = activityPriorAuthControllers; // Added
+    // With new architecture, we don't manage activity controllers here anymore.
+    // Just clear permanent ones and set their values.
 
-    activityNetControllers = [];
-    activityCopayControllers = [];
-    activityDslCodeControllers = {};
-    activityQuantityControllers = [];
-    activityPriorAuthControllers = []; // Added
+    _clearPermanentControllers();
 
     grossController.removeListener(_onControllerChanged);
     patientShareController.removeListener(_onControllerChanged);
     netController.removeListener(_onControllerChanged);
-
-    for (final c in [
-      ...oldNetControllers,
-      ...oldCopayControllers,
-      ...oldQuantityControllers,
-      ...oldPriorAuthControllers, // Added
-    ]) {
-      c.removeListener(_onControllerChanged);
-      c.dispose();
-    }
-    for (final c in oldDslCodeControllers.values) {
-      c.dispose();
-    }
-
-    _clearPermanentControllers();
 
     if (_claimData != null) {
       grossController.text = _claimData!.gross ?? '0.00';
@@ -127,36 +107,12 @@ class ClaimDataNotifier extends ChangeNotifier {
             'internal complaint';
       }
 
-      for (int i = 0; i < _claimData!.activities.length; i++) {
-        final activity = _claimData!.activities[i];
-
-        final qtyController =
-            TextEditingController(text: activity.quantity ?? '1');
-        qtyController.addListener(() => _onQuantityChanged(i));
-        activityQuantityControllers.add(qtyController);
-
-        activityNetControllers
-            .add(TextEditingController(text: activity.net ?? '0.00'));
-        activityCopayControllers
-            .add(TextEditingController(text: activity.copay ?? '0.00'));
-
-        // Added: Initialize Prior Auth Controller
-        activityPriorAuthControllers.add(
-            TextEditingController(text: activity.priorAuthorizationID ?? ''));
-
-        if (activity.type == '8') {
-          final controller = TextEditingController(text: activity.code ?? '');
-          controller.addListener(() => _onDslCodeChanged(i, controller));
-          activityDslCodeControllers[activity.stateId] = controller;
-        }
-      }
-
+      // We do NOT initialize activity controllers here.
+      // However, we still listen to global controllers.
       for (final c in [
         grossController,
         patientShareController,
         netController,
-        ...activityNetControllers,
-        ...activityCopayControllers
       ]) {
         c.addListener(_onControllerChanged);
       }
@@ -164,13 +120,13 @@ class ClaimDataNotifier extends ChangeNotifier {
     }
   }
 
-  void _onDslCodeChanged(int index, TextEditingController controller) {
+  void updateActivityCode(int index, String newCode) {
     if (_claimData == null) return;
 
     final activity = _claimData!.activities[index];
     final originalActivity = _originalActivities[index];
 
-    activity.code = controller.text;
+    activity.code = newCode;
 
     final isDslCodeModified = activity.code != originalActivity.code;
 
@@ -182,19 +138,18 @@ class ClaimDataNotifier extends ChangeNotifier {
           'Resubmission type automatically set to "correction" due to DSL code edit.',
           false);
     }
-
     notifyListeners();
   }
 
-  void _onQuantityChanged(int index) {
+  void updateActivityQuantity(
+      int index, String newQuantityText, TextEditingController netController) {
     if (_claimData == null || index >= _claimData!.activities.length) return;
 
     final originalActivity = _originalActivities[index];
     final originalQty = int.tryParse(originalActivity.quantity ?? '1') ?? 1;
     final originalNet = double.tryParse(originalActivity.net ?? '0.00') ?? 0.0;
 
-    final currentQtyController = activityQuantityControllers[index];
-    _claimData!.activities[index].quantity = currentQtyController.text;
+    _claimData!.activities[index].quantity = newQuantityText;
 
     if (originalQty == 0) {
       notifyListeners();
@@ -202,24 +157,26 @@ class ClaimDataNotifier extends ChangeNotifier {
     }
 
     final unitPrice = originalNet / originalQty;
-    final newQty = int.tryParse(currentQtyController.text) ?? 0;
+    final newQty = int.tryParse(newQuantityText) ?? 0;
     final newNet = newQty * unitPrice;
     final newNetText = newNet.toStringAsFixed(2);
-    final netController = activityNetControllers[index];
 
     _claimData!.activities[index].net = newNetText;
 
     if (netController.text != newNetText) {
-      netController.text = newNetText;
+      netController.text = newNetText; // This updates the UI via the controller
     } else {
       notifyListeners();
     }
+    checkBalances();
   }
 
   void _onControllerChanged() {
     _checkAllBalances();
     notifyListeners();
   }
+
+  void checkBalances() => _checkAllBalances();
 
   void onTotalsEdited(String source) {
     final g = double.tryParse(grossController.text) ?? 0.0;
@@ -240,11 +197,10 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void _checkNetBalance() {
     if (_claimData == null) return;
-    final totalNetFromActivities =
-        Iterable.generate(_claimData!.activities.length)
-            .where((i) => !_claimData!.activities[i].isDeleted)
-            .map((i) => double.tryParse(activityNetControllers[i].text) ?? 0.0)
-            .fold(0.0, (prev, val) => prev + val);
+    final totalNetFromActivities = _claimData!.activities
+        .where((activity) => !activity.isDeleted)
+        .map((activity) => double.tryParse(activity.net ?? '0.00') ?? 0.0)
+        .fold(0.0, (prev, val) => prev + val);
     final declaredNet = double.tryParse(netController.text) ?? 0.0;
     final diff = declaredNet - totalNetFromActivities;
     netDifference =
@@ -285,6 +241,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
         _claimData = claimData;
         _originalFilePath = filePath;
+        // Store original activities for comparison
         _originalDiagnoses =
             _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
         _originalActivities =
@@ -328,19 +285,9 @@ class ClaimDataNotifier extends ChangeNotifier {
         _claimData!.resubmission!.comment =
             resubmissionCommentController.text.trim();
       }
-      for (int i = 0; i < _claimData!.activities.length; i++) {
-        _claimData!.activities[i]
-          ..net = activityNetControllers[i].text
-          ..copay = activityCopayControllers[i].text // Ensure Copay is saved
-          ..quantity =
-              activityQuantityControllers[i].text // Ensure Qty is saved
-          ..priorAuthorizationID = activityPriorAuthControllers[i].text.isEmpty
-              ? null
-              : activityPriorAuthControllers[i].text; // Save Prior Auth
-      }
-      final xmlString = _xmlHandler
-          .createXmlDocument(_claimData!)
-          .toXmlString(pretty: true, indent: '  ');
+      // Activities are now updated in real-time, no need to sync from controllers here
+
+      final xmlString = await compute(generateXmlString, _claimData!);
 
       final claimId = _claimData!.claimId ?? "UNKNOWN";
       final sanitizedId = claimId.replaceAll(RegExp(r'[^\w-]'), '_');
@@ -487,37 +434,8 @@ class ClaimDataNotifier extends ChangeNotifier {
       // We also need to add a "phantom" original activity so indexes match
       _originalActivities.add(ActivityData.clone(activity));
 
-      // OPTIMIZATION: Instead of _updateControllers() which completely rebuilds everything,
-      // we just append the new controllers.
-      final index = _claimData!.activities.length - 1;
-
-      // Quantity
-      final qtyController =
-          TextEditingController(text: activity.quantity ?? '1');
-      qtyController.addListener(() => _onQuantityChanged(index));
-      activityQuantityControllers.add(qtyController);
-
-      // Net
-      final netController = TextEditingController(text: activity.net ?? '0.00');
-      netController.addListener(_onControllerChanged);
-      activityNetControllers.add(netController);
-
-      // Copay
-      final copayController =
-          TextEditingController(text: activity.copay ?? '0.00');
-      copayController.addListener(_onControllerChanged);
-      activityCopayControllers.add(copayController);
-
-      // Prior Auth
-      activityPriorAuthControllers.add(
-          TextEditingController(text: activity.priorAuthorizationID ?? ''));
-
-      // DSL Code (if applicable)
-      if (activity.type == '8') {
-        final controller = TextEditingController(text: activity.code ?? '');
-        controller.addListener(() => _onDslCodeChanged(index, controller));
-        activityDslCodeControllers[activity.stateId] = controller;
-      }
+      // Re-calculate balances
+      _checkAllBalances();
 
       // Re-calculate balances
       _checkAllBalances();
@@ -533,11 +451,11 @@ class ClaimDataNotifier extends ChangeNotifier {
     double deletedCopay = 0.0;
     for (int i = 0; i < _claimData!.activities.length; i++) {
       final activity = _claimData!.activities[i];
-      final copayVal = double.tryParse(activityCopayControllers[i].text) ?? 0.0;
+      final copayVal = double.tryParse(activity.copay ?? '0.00') ?? 0.0;
       if (activity.isDeleted) {
         deletedCopay += copayVal;
       } else {
-        totalNet += double.tryParse(activityNetControllers[i].text) ?? 0.0;
+        totalNet += double.tryParse(activity.net ?? '0.00') ?? 0.0;
       }
     }
     final patientShare = max(0.0, _originalPatientShare - deletedCopay);
@@ -778,18 +696,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     patientShareController.dispose();
     netController.dispose();
     resubmissionCommentController.dispose();
-
-    for (final c in [
-      ...activityNetControllers,
-      ...activityCopayControllers,
-      ...activityQuantityControllers,
-      ...activityPriorAuthControllers, // Added
-    ]) {
-      c.dispose();
-    }
-    for (final c in activityDslCodeControllers.values) {
-      c.dispose();
-    }
 
     super.dispose();
   }

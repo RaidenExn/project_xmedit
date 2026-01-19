@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_xmedit/notifiers.dart';
-import 'package:project_xmedit/xml_handler.dart';
+import 'package:project_xmedit/models/claim_models.dart';
 import 'package:provider/provider.dart';
 
 class AddActivityDialog extends StatefulWidget {

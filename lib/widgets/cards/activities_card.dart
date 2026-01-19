@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:project_xmedit/notifiers.dart';
-import 'package:project_xmedit/xml_handler.dart';
+import 'package:project_xmedit/providers/claim_data_provider.dart'; // Moved here
+import 'package:project_xmedit/models/claim_models.dart';
 import 'package:project_xmedit/widgets/common/custom_table.dart';
 import 'package:project_xmedit/widgets/common/editable_cells.dart';
 import 'package:project_xmedit/dialogs/observation_dialog.dart'; // Moved here
@@ -22,73 +22,15 @@ class ActivitiesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notifier = context.watch<ClaimDataNotifier>();
-    const Map<String, String> typeMap = {
-      "3": "CPT",
-      "8": "DSL",
-      "5": "Drug",
-      "6": "CDT",
-    };
-
-    if (notifier.claimData?.activities.isEmpty ?? true) {
-      return const Center(child: Text("No activities found."));
-    }
-
-    final grouped = notifier.groupedActivities;
-    final types = grouped.keys.toList();
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: List.generate(types.length, (index) {
-        final typeKey = types[index];
-        final activitiesOfType = grouped[typeKey]!;
-        final typeName = typeMap[typeKey] ?? 'Unknown Type';
-
-        final bool isFirstGroup = index == 0;
-
-        return Padding(
-          padding: EdgeInsets.only(top: isFirstGroup ? 0 : 12.0),
-          child: Container(
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.0),
-              border: Border.all(
-                color:
-                    Theme.of(context).colorScheme.outlineVariant.withAlpha(128),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ActivityTableHeader(title: typeName),
-                const Divider(height: 1),
-                ...activitiesOfType.asMap().entries.map((entry) {
-                  final int idx = entry.key;
-                  final activity = entry.value;
-                  final originalIndex =
-                      notifier.claimData!.activities.indexOf(activity);
-
-                  return _ActivityDataRow(
-                    key: ValueKey(activity.stateId),
-                    notifier: notifier,
-                    activity: activity,
-                    originalIndex: originalIndex,
-                    isZebra: idx.isEven,
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      }),
-    );
+    // This widget is likely to be replaced by the Sliver implementation in BodyContent
+    // But we keep it for now or for empty state handling.
+    return const SizedBox.shrink();
   }
 }
 
-class _ActivityTableHeader extends StatelessWidget {
+class ActivityTableHeader extends StatelessWidget {
   final String title;
-  const _ActivityTableHeader({required this.title});
+  const ActivityTableHeader({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -106,11 +48,18 @@ class _ActivityTableHeader extends StatelessWidget {
         ),
         Expanded(
           flex: _activityColumnFlex['desc']!,
-          child: Center(child: Text('Description', style: style)),
+          child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Description', style: style)),
         ),
         Expanded(
           flex: _activityColumnFlex['priorAuth']!,
-          child: Center(child: Text('Prior Auth', style: style)),
+          child: Align(
+              alignment: Alignment.centerLeft, // Matches EditableStringCell
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0),
+                child: Text('Prior Auth', style: style),
+              )),
         ),
         Expanded(
           flex: _activityColumnFlex['obs']!,
@@ -122,11 +71,21 @@ class _ActivityTableHeader extends StatelessWidget {
         ),
         Expanded(
           flex: _activityColumnFlex['net']!,
-          child: Center(child: Text('Net', style: style)),
+          child: Align(
+              alignment: Alignment.centerRight, // Matches EditableNumberCell
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6.0),
+                child: Text('Net', style: style),
+              )),
         ),
         Expanded(
           flex: _activityColumnFlex['copay']!,
-          child: Center(child: Text('Copay', style: style)),
+          child: Align(
+              alignment: Alignment.centerRight, // Matches EditableNumberCell
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6.0),
+                child: Text('Copay', style: style),
+              )),
         ),
         Expanded(
           flex: _activityColumnFlex['actions']!,
@@ -137,13 +96,13 @@ class _ActivityTableHeader extends StatelessWidget {
   }
 }
 
-class _ActivityDataRow extends StatelessWidget {
+class ActivityDataRow extends StatefulWidget {
   final ClaimDataNotifier notifier;
   final ActivityData activity;
   final int originalIndex;
   final bool isZebra;
 
-  const _ActivityDataRow({
+  const ActivityDataRow({
     super.key,
     required this.notifier,
     required this.activity,
@@ -152,39 +111,142 @@ class _ActivityDataRow extends StatelessWidget {
   });
 
   @override
+  State<ActivityDataRow> createState() => _ActivityDataRowState();
+}
+
+class _ActivityDataRowState extends State<ActivityDataRow> {
+  late TextEditingController _dslCodeController;
+  late TextEditingController _quantityController;
+  late TextEditingController _netController;
+  late TextEditingController _copayController;
+  late TextEditingController _priorAuthController;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllers();
+  }
+
+  void _initializeControllers() {
+    _dslCodeController =
+        TextEditingController(text: widget.activity.code ?? '');
+    _quantityController =
+        TextEditingController(text: widget.activity.quantity ?? '1');
+    _netController = TextEditingController(text: widget.activity.net ?? '0.00');
+    _copayController =
+        TextEditingController(text: widget.activity.copay ?? '0.00');
+    _priorAuthController =
+        TextEditingController(text: widget.activity.priorAuthorizationID ?? '');
+
+    _dslCodeController.addListener(_onDslCodeChanged);
+    _quantityController.addListener(_onQuantityChanged);
+    _netController.addListener(_onNetChanged);
+    _copayController.addListener(_onCopayChanged);
+    _priorAuthController.addListener(_onPriorAuthChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant ActivityDataRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activity != widget.activity) {
+      // If the activity instance changes (e.g. reload), re-init controllers
+      // Note: Ideally, Key should handle this, but for safety:
+      _disposeControllers();
+      _initializeControllers();
+    }
+  }
+
+  void _disposeControllers() {
+    _dslCodeController.removeListener(_onDslCodeChanged);
+    _quantityController.removeListener(_onQuantityChanged);
+    _netController.removeListener(_onNetChanged);
+    _copayController.removeListener(_onCopayChanged);
+    _priorAuthController.removeListener(_onPriorAuthChanged);
+
+    _dslCodeController.dispose();
+    _quantityController.dispose();
+    _netController.dispose();
+    _copayController.dispose();
+    _priorAuthController.dispose();
+  }
+
+  @override
+  void dispose() {
+    _disposeControllers();
+    super.dispose();
+  }
+
+  void _onDslCodeChanged() {
+    if (widget.activity.code != _dslCodeController.text) {
+      // We might want to add a method on notifier to handle logic related to DSL code change
+      // For now, updating the model directly and notifying listener if needed
+      // But the notifier has specific logic for DSL code changes (checking against original)
+      // so we should probably expose a method or keep using a callback.
+      // Let's call a method on notifier to handle side effects.
+      widget.notifier
+          .updateActivityCode(widget.originalIndex, _dslCodeController.text);
+    }
+  }
+
+  void _onQuantityChanged() {
+    // Similar logic to _onQuantityChanged in notifier
+    widget.notifier.updateActivityQuantity(
+        widget.originalIndex, _quantityController.text, _netController);
+  }
+
+  void _onNetChanged() {
+    // Just update model and check balances
+    widget.activity.net = _netController.text;
+    widget.notifier.checkBalances();
+  }
+
+  void _onCopayChanged() {
+    widget.activity.copay = _copayController.text;
+    widget.notifier.checkBalances();
+  }
+
+  void _onPriorAuthChanged() {
+    widget.activity.priorAuthorizationID = _priorAuthController.text;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDeleted = activity.isDeleted;
+    // We need to listen to notifier somewhat? Actually, if we update via notifier, it calls notifyListeners.
+    // The parent ActivitiesCard rebuilds, so this widget might receive new props.
+    // But since we are stateful and use controllers, we are the source of truth for the text while editing.
+
+    final isDeleted = widget.activity.isDeleted;
     final textStyle = TextStyle(
       fontSize: 14,
-      decoration: isDeleted ? TextDecoration.lineThrough : null,
-      color: isDeleted ? Theme.of(context).disabledColor : null,
+      fontStyle: isDeleted ? FontStyle.italic : null,
+      color: isDeleted ? Theme.of(context).colorScheme.error : null,
     );
-    final description = notifier.cptDescriptions[activity.code] ?? 'N/A';
-    final int observationCount = activity.observations.length;
+    final description =
+        widget.notifier.cptDescriptions[widget.activity.code] ?? 'N/A';
+    final int observationCount = widget.activity.observations.length;
 
     Widget codeWidget;
-    if (activity.type == '8') {
-      final controller = notifier.activityDslCodeControllers[activity.stateId];
-      codeWidget = controller != null
-          ? TextFormField(
-              controller: controller,
-              style: textStyle,
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.only(bottom: 4),
-              ),
-            )
-          : Text(activity.code ?? 'N/A', style: textStyle);
+    if (widget.activity.type == '8') {
+      codeWidget = TextFormField(
+        controller: _dslCodeController,
+        style: textStyle,
+        decoration: const InputDecoration(
+          border: UnderlineInputBorder(),
+          isDense: true,
+          contentPadding: EdgeInsets.only(bottom: 4),
+        ),
+      );
     } else {
-      codeWidget = Text(activity.code ?? 'N/A', style: textStyle);
+      codeWidget = Text(widget.activity.code ?? 'N/A', style: textStyle);
     }
 
-    final originalActivity = notifier.originalActivities[originalIndex];
-    final isQtyEdited = activity.quantity != (originalActivity.quantity ?? '1');
+    final originalActivity =
+        widget.notifier.originalActivities[widget.originalIndex];
+    final isQtyEdited =
+        widget.activity.quantity != (originalActivity.quantity ?? '1');
 
     return CustomDataRow(
-      isZebra: isZebra,
+      isZebra: widget.isZebra,
       isDeleted: isDeleted,
       children: [
         Expanded(
@@ -199,8 +261,7 @@ class _ActivityDataRow extends StatelessWidget {
               SizedBox(
                 width: 50,
                 child: EditableQuantityCell(
-                  controller:
-                      notifier.activityQuantityControllers[originalIndex],
+                  controller: _quantityController,
                   enabled: !isDeleted,
                 ),
               ),
@@ -232,7 +293,7 @@ class _ActivityDataRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: EditableStringCell(
-              controller: notifier.activityPriorAuthControllers[originalIndex],
+              controller: _priorAuthController,
               enabled: !isDeleted,
               hintText: 'Auth ID',
             ),
@@ -254,10 +315,13 @@ class _ActivityDataRow extends StatelessWidget {
                   showDialog(
                     context: context,
                     builder: (_) => ObservationDialog(
-                      activity: activity,
-                      notifier: notifier,
+                      activity: widget.activity,
+                      notifier: widget.notifier,
                     ),
-                  );
+                  ).then((_) {
+                    // Force rebuild to show updated observation count if changed
+                    setState(() {});
+                  });
                 },
                 child: Text(
                   '$observationCount',
@@ -277,7 +341,7 @@ class _ActivityDataRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: EditableNumberCell(
-              controller: notifier.activityNetControllers[originalIndex],
+              controller: _netController,
               enabled: !isDeleted,
             ),
           ),
@@ -287,7 +351,7 @@ class _ActivityDataRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: EditableNumberCell(
-              controller: notifier.activityCopayControllers[originalIndex],
+              controller: _copayController,
               enabled: !isDeleted,
             ),
           ),
@@ -299,7 +363,8 @@ class _ActivityDataRow extends StatelessWidget {
               icon:
                   Icon(isDeleted ? Icons.undo : Icons.delete_outline, size: 18),
               color: isDeleted ? null : Theme.of(context).colorScheme.error,
-              onPressed: () => notifier.toggleActivityDeleted(originalIndex),
+              onPressed: () =>
+                  widget.notifier.toggleActivityDeleted(widget.originalIndex),
             ),
           ),
         ),
