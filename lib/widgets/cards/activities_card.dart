@@ -191,9 +191,14 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
   }
 
   void _onQuantityChanged() {
-    // Similar logic to _onQuantityChanged in notifier
-    widget.notifier.updateActivityQuantity(
-        widget.originalIndex, _quantityController.text, _netController);
+    // Update quantity and get the new calculated net value
+    final newNetText = widget.notifier
+        .updateActivityQuantity(widget.originalIndex, _quantityController.text);
+
+    // Update the net controller with the new value if one was returned
+    if (newNetText != null && _netController.text != newNetText) {
+      _netController.text = newNetText;
+    }
   }
 
   void _onNetChanged() {

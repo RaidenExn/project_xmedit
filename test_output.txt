@@ -1,0 +1,169 @@
+00:00 +0: loading /Users/abhijithss/Developements/project_xmedit/test/widget_test.dart                                                                                                                 00:00 +0: loading /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart                                                                                                          00:00 +0: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator validates a correct claim without errors                                                           00:00 +1: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator validates a correct claim without errors                                                           00:00 +1: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports error for missing Claim ID                                                                 00:00 +2: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports error for missing Claim ID                                                                 00:00 +2: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports error for invalid dates                                                                    00:00 +3: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports error for invalid dates                                                                    00:00 +3: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports error for mismatched totals                                                                00:00 +4: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports error for mismatched totals                                                                00:00 +4: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports warning for missing principal diagnosis                                                    00:00 +5: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator reports warning for missing principal diagnosis                                                    00:00 +5: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator canSave returns false for critical errors                                                          00:00 +6: /Users/abhijithss/Developements/project_xmedit/test/xml_validator_test.dart: XmlValidator canSave returns false for critical errors                                                          00:00 +6: loading /Users/abhijithss/Developements/project_xmedit/test/widget_test.dart                                                                                                                 00:00 +6: /Users/abhijithss/Developements/project_xmedit/test/widget_test.dart: App smoke test                                                                                                         00:01 +6: /Users/abhijithss/Developements/project_xmedit/test/widget_test.dart: App smoke test                                                                                                         00:01 +6: /Users/abhijithss/Developements/project_xmedit/test/widget_test.dart: App smoke test                                                                                                         
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 260 pixels on the right.
+
+The relevant error-causing widget was:
+  AppBar AppBar:file:///Users/abhijithss/Developements/project_xmedit/lib/home_page.dart:373:21
+
+The overflowing RenderFlex has an orientation of Axis.horizontal.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#00a29 relayoutBoundary=up13 OVERFLOWING:
+  creator: Row ← Padding ← IconTheme ← Builder ← IconButtonTheme ← LayoutId-[<_ToolbarSlot.trailing>]
+    ← CustomMultiChildLayout ← NavigationToolbar ← DefaultTextStyle ← IconTheme ← Builder ←
+    CustomSingleChildLayout ← ⋯
+  parentData: offset=Offset(0.0, 0.0) (can use size)
+  constraints: BoxConstraints(0.0<=w<=800.0, 0.0<=h<=56.0)
+  size: Size(800.0, 56.0)
+  direction: horizontal
+  mainAxisAlignment: start
+  mainAxisSize: min
+  crossAxisAlignment: center
+  textDirection: ltr
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: databaseFactory not initialized
+databaseFactory is only initialized when using sqflite. When using `sqflite_common_ffi`
+You must call `databaseFactory = databaseFactoryFfi;` before using global openDatabase API
+
+When the exception was thrown, this was the stack:
+#0      databaseFactory.<anonymous closure> (package:sqflite_common/src/sqflite_database_factory.dart:32:7)
+#1      databaseFactory (package:sqflite_common/src/sqflite_database_factory.dart:36:6)
+#2      getDatabasesPath (package:sqflite_common/sqflite.dart:109:38)
+#3      DatabaseHelper._initDb (package:project_xmedit/database_helper.dart:20:26)
+#4      DatabaseHelper.database (package:project_xmedit/database_helper.dart:15:23)
+#5      new ClaimDataNotifier (package:project_xmedit/providers/claim_data_provider.dart:54:15)
+#6      MyApp.build.<anonymous closure> (package:project_xmedit/main.dart:48:55)
+#7      _CreateInheritedProviderState.value (package:provider/src/inherited_provider.dart:749:36)
+#8      _InheritedProviderScopeElement.value (package:provider/src/inherited_provider.dart:603:33)
+#9      Provider.of (package:provider/src/provider.dart:337:37)
+#10     ReadContext.read (package:provider/src/provider.dart:683:21)
+#11     _HomePageState.didChangeDependencies (package:project_xmedit/home_page.dart:120:30)
+#12     StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5971:11)
+#13     ComponentElement.mount (package:flutter/src/widgets/framework.dart:5796:5)
+...     Normal element mounting (260 frames)
+#273    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4590:20)
+#274    MultiChildRenderObjectElement.inflateWidget (package:flutter/src/widgets/framework.dart:7269:36)
+#275    MultiChildRenderObjectElement.mount (package:flutter/src/widgets/framework.dart:7285:32)
+...     Normal element mounting (460 frames)
+#735    _InheritedProviderScopeElement.mount (package:provider/src/inherited_provider.dart:424:11)
+...     Normal element mounting (7 frames)
+#742    _InheritedProviderScopeElement.mount (package:provider/src/inherited_provider.dart:424:11)
+...     Normal element mounting (7 frames)
+#749    _InheritedProviderScopeElement.mount (package:provider/src/inherited_provider.dart:424:11)
+...     Normal element mounting (7 frames)
+#756    _InheritedProviderScopeElement.mount (package:provider/src/inherited_provider.dart:424:11)
+...     Normal element mounting (7 frames)
+#763    SingleChildWidgetElementMixin.mount (package:nested/nested.dart:222:11)
+...     Normal element mounting (7 frames)
+#770    _NestedHookElement.mount (package:nested/nested.dart:187:11)
+...     Normal element mounting (7 frames)
+#777    SingleChildWidgetElementMixin.mount (package:nested/nested.dart:222:11)
+...     Normal element mounting (7 frames)
+#784    Element.inflateWidget (package:flutter/src/widgets/framework.dart:4590:20)
+#785    Element.updateChild (package:flutter/src/widgets/framework.dart:4053:20)
+#786    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#787    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#788    ProxyElement.update (package:flutter/src/widgets/framework.dart:6152:5)
+#789    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#790    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#791    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#792    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5985:11)
+#793    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#794    StatefulElement.update (package:flutter/src/widgets/framework.dart:6010:5)
+#795    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#796    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#797    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#798    ProxyElement.update (package:flutter/src/widgets/framework.dart:6152:5)
+#799    _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#800    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#801    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#802    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5985:11)
+#803    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#804    StatefulElement.update (package:flutter/src/widgets/framework.dart:6010:5)
+#805    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#806    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#807    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5985:11)
+#808    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#809    StatefulElement.update (package:flutter/src/widgets/framework.dart:6010:5)
+#810    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#811    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#812    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#813    ProxyElement.update (package:flutter/src/widgets/framework.dart:6152:5)
+#814    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#815    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#816    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5985:11)
+#817    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#818    StatefulElement.update (package:flutter/src/widgets/framework.dart:6010:5)
+#819    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#820    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#821    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#822    ProxyElement.update (package:flutter/src/widgets/framework.dart:6152:5)
+#823    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#824    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#825    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#826    ProxyElement.update (package:flutter/src/widgets/framework.dart:6152:5)
+#827    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#828    _RawViewElement._updateChild (package:flutter/src/widgets/view.dart:481:16)
+#829    _RawViewElement.update (package:flutter/src/widgets/view.dart:568:5)
+#830    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#831    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#832    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#833    StatelessElement.update (package:flutter/src/widgets/framework.dart:5898:5)
+#834    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#835    ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5844:16)
+#836    StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5985:11)
+#837    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#838    StatefulElement.update (package:flutter/src/widgets/framework.dart:6010:5)
+#839    Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#840    RootElement._rebuild (package:flutter/src/widgets/binding.dart:1782:16)
+#841    RootElement.update (package:flutter/src/widgets/binding.dart:1760:5)
+#842    RootElement.performRebuild (package:flutter/src/widgets/binding.dart:1774:7)
+#843    Element.rebuild (package:flutter/src/widgets/framework.dart:5532:7)
+#844    BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2750:15)
+#845    BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2807:11)
+#846    BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3111:18)
+#847    AutomatedTestWidgetsFlutterBinding.drawFrame (package:flutter_test/src/binding.dart:1506:19)
+#848    RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#849    SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1434:15)
+#850    SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1347:9)
+#851    AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1335:9)
+#854    TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#855    AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1324:27)
+#856    WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#859    TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#860    WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#861    main.<anonymous closure> (file:///Users/abhijithss/Developements/project_xmedit/test/widget_test.dart:16:18)
+#862    testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#863    TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 5 frames from dart:async and package:stack_trace)
+
+The test description was:
+  App smoke test
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (2) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:01 +6 -1: /Users/abhijithss/Developements/project_xmedit/test/widget_test.dart: App smoke test [E]                                                                                                  
+  Test failed. See exception logs above.
+  The test description was: App smoke test
+  
+
+To run this test again: /Users/abhijithss/development/flutter/bin/cache/dart-sdk/bin/dart test /Users/abhijithss/Developements/project_xmedit/test/widget_test.dart -p vm --plain-name 'App smoke test'
+00:01 +6 -1: Some tests failed.                                                                                                                                                                        

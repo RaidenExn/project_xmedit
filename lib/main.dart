@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:project_xmedit/home_page.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/providers/bulk_claim_data_provider.dart';
-import 'package:project_xmedit/services/native_menu_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
@@ -35,9 +34,6 @@ void main() async {
       await windowManager.show();
       await windowManager.focus();
     });
-
-    // Initialize native menu service for macOS menu bar
-    NativeMenuService.initialize();
   }
 
   runApp(const MyApp());

@@ -1,22 +1,13 @@
-import 'package:universal_io/io.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'package:universal_html/html.dart' as html;
-import 'dart:convert';
 import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
-import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/models/claim_models.dart';
+import 'package:project_xmedit/repositories/claim_repository.dart';
 import 'package:project_xmedit/services/xml_service.dart'
-    show
-        parseXmlInBackground,
-        generateXmlString,
-        XmlParsingException,
-        detectBulkXml;
+    show XmlParsingException, detectBulkXml;
 import 'package:project_xmedit/utils/attachment_helper.dart';
 import 'package:project_xmedit/services/logger.dart';
 import 'package:project_xmedit/services/preferences_service.dart';
@@ -25,6 +16,8 @@ import 'package:project_xmedit/models/validation_result.dart';
 
 class ClaimDataNotifier extends ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final ClaimRepository _repository = ClaimRepository();
+
   ClaimData? _claimData;
   List<DiagnosisData> _originalDiagnoses = [];
   List<ActivityData> _originalActivities = [];
@@ -43,12 +36,6 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   bool transferOnDelete = true;
   ValidationResult? _validationResult;
-
-  final TextEditingController grossController = TextEditingController();
-  final TextEditingController patientShareController = TextEditingController();
-  final TextEditingController netController = TextEditingController();
-  final TextEditingController resubmissionCommentController =
-      TextEditingController();
 
   ClaimDataNotifier() {
     _dbHelper.database;
@@ -74,54 +61,37 @@ class ClaimDataNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _clearPermanentControllers() {
-    grossController.clear();
-    patientShareController.clear();
-    netController.clear();
-    resubmissionCommentController.clear();
+  void setGross(String value) {
+    if (_claimData != null) {
+      _claimData!.gross = value;
+      _checkAllBalances();
+      _validate();
+      notifyListeners();
+    }
   }
 
-  void _updateControllers() {
-    // With new architecture, we don't manage activity controllers here anymore.
-    // Just clear permanent ones and set their values.
-
-    _clearPermanentControllers();
-
-    grossController.removeListener(_onControllerChanged);
-    patientShareController.removeListener(_onControllerChanged);
-    netController.removeListener(_onControllerChanged);
-
+  void setPatientShare(String value) {
     if (_claimData != null) {
-      grossController.text = _claimData!.gross ?? '0.00';
-      patientShareController.text = _claimData!.patientShare ?? '0.00';
-      netController.text = _claimData!.net ?? '0.00';
-      resubmissionCommentController.text =
-          _claimData!.resubmission?.comment ?? '';
-      _originalPatientShare =
-          double.tryParse(_claimData!.patientShare ?? '0') ?? 0.0;
-      originalResubmissionType = _claimData!.resubmission?.type;
-
-      const resubmissionOptions = [
-        "correction",
-        "internal complaint",
-        "reconciliation"
-      ];
-      final currentType = _claimData!.resubmission?.type;
-      if (currentType == null || !resubmissionOptions.contains(currentType)) {
-        (_claimData!.resubmission ??= ResubmissionData()).type =
-            'internal complaint';
-      }
-
-      // We do NOT initialize activity controllers here.
-      // However, we still listen to global controllers.
-      for (final c in [
-        grossController,
-        patientShareController,
-        netController,
-      ]) {
-        c.addListener(_onControllerChanged);
-      }
+      _claimData!.patientShare = value;
       _checkAllBalances();
+      _validate();
+      notifyListeners();
+    }
+  }
+
+  void setNet(String value) {
+    if (_claimData != null) {
+      _claimData!.net = value;
+      _checkAllBalances();
+      _validate();
+      notifyListeners();
+    }
+  }
+
+  void setResubmissionComment(String value) {
+    if (_claimData?.resubmission != null) {
+      _claimData!.resubmission!.comment = value;
+      // notifyListeners(); // Only if we want to validate immediately
     }
   }
 
@@ -147,9 +117,10 @@ class ClaimDataNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateActivityQuantity(
-      int index, String newQuantityText, TextEditingController netController) {
-    if (_claimData == null || index >= _claimData!.activities.length) return;
+  String? updateActivityQuantity(int index, String newQuantityText) {
+    if (_claimData == null || index >= _claimData!.activities.length) {
+      return null;
+    }
 
     final originalActivity = _originalActivities[index];
     final originalQty = int.tryParse(originalActivity.quantity ?? '1') ?? 1;
@@ -159,7 +130,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
     if (originalQty == 0) {
       notifyListeners();
-      return;
+      return null;
     }
 
     final unitPrice = originalNet / originalQty;
@@ -169,38 +140,11 @@ class ClaimDataNotifier extends ChangeNotifier {
 
     _claimData!.activities[index].net = newNetText;
 
-    if (netController.text != newNetText) {
-      netController.text = newNetText; // This updates the UI via the controller
-    } else {
-      notifyListeners();
-    }
     checkBalances();
     _validate();
-  }
-
-  void _onControllerChanged() {
-    _checkAllBalances();
-    _validate();
     notifyListeners();
-  }
 
-  void checkBalances() => _checkAllBalances();
-
-  void onTotalsEdited(String source) {
-    final g = double.tryParse(grossController.text) ?? 0.0;
-    final ps = double.tryParse(patientShareController.text) ?? 0.0;
-    final n = double.tryParse(netController.text) ?? 0.0;
-    switch (source) {
-      case "gross":
-        netController.text = (g - ps).toStringAsFixed(2);
-        break;
-      case "pshare":
-      case "net":
-        grossController.text = (n + ps).toStringAsFixed(2);
-        break;
-    }
-    _checkAllBalances();
-    notifyListeners();
+    return newNetText;
   }
 
   void _checkNetBalance() {
@@ -209,7 +153,9 @@ class ClaimDataNotifier extends ChangeNotifier {
         .where((activity) => !activity.isDeleted)
         .map((activity) => double.tryParse(activity.net ?? '0.00') ?? 0.0)
         .fold(0.0, (prev, val) => prev + val);
-    final declaredNet = double.tryParse(netController.text) ?? 0.0;
+
+    final declaredNet = double.tryParse(_claimData!.net ?? '0') ?? 0.0;
+
     final diff = declaredNet - totalNetFromActivities;
     netDifference =
         (diff.abs() > 0.001) ? "(Δ ${diff.toStringAsFixed(2)})" : "";
@@ -217,18 +163,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void _validate() {
     if (_claimData != null) {
-      // Ensure controllers are synced before validation if needed, but
-      // XmlValidator reads from ClaimData.
-      // We must sync basic fields from controllers to ClaimData for validation
-      _claimData!.gross = grossController.text;
-      _claimData!.patientShare = patientShareController.text;
-      _claimData!.net = netController.text;
-      if (_claimData!.resubmission != null) {
-        _claimData!.resubmission!.comment = resubmissionCommentController.text;
-      }
-
       _validationResult = XmlValidator.validateClaim(_claimData!);
-      // notifyListeners() is usually called by the caller of _validate() or we can call it here if standalone
     } else {
       _validationResult = null;
     }
@@ -236,35 +171,17 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void _checkAllBalances() => _checkNetBalance();
 
+  void checkBalances() => _checkAllBalances();
+
   Future<void> loadXmlFile() async {
     bool loadingStarted = false;
     try {
-      final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['xml'],
-      );
+      final FilePickResult? result = await _repository.pickXmlFile();
 
       if (result != null) {
         _setLoading(true);
         loadingStarted = true;
-
-        String xmlString;
-        String? filePath;
-
-        if (kIsWeb) {
-          final bytes = result.files.single.bytes!;
-          xmlString = utf8.decode(bytes);
-          filePath = result.files.single.name;
-        } else if (result.files.single.path != null) {
-          filePath = result.files.single.path!;
-          final file = File(filePath);
-          xmlString = await file.readAsString();
-        } else {
-          onMessage?.call('Error: File path is null', true);
-          return;
-        }
-
-        await loadFromXmlString(xmlString, filePath);
+        await loadFromXmlString(result.xmlString, result.filePath);
       } else {
         onMessage?.call('File selection cancelled.', false);
       }
@@ -290,7 +207,7 @@ class ClaimDataNotifier extends ChangeNotifier {
         return;
       }
 
-      final claimData = await compute(parseXmlInBackground, xmlString);
+      final claimData = await _repository.parseXml(xmlString);
 
       _claimData = claimData;
       _originalFilePath = filePath;
@@ -304,7 +221,23 @@ class ClaimDataNotifier extends ChangeNotifier {
           _claimData!.activities.map((a) => a.code).whereType<String>().toSet();
       _cptDescriptions =
           await _dbHelper.getDescriptionsForCptCodes(activityCodes);
-      _updateControllers();
+
+      _originalPatientShare =
+          double.tryParse(_claimData!.patientShare ?? '0') ?? 0.0;
+      originalResubmissionType = _claimData!.resubmission?.type;
+
+      const resubmissionOptions = [
+        "correction",
+        "internal complaint",
+        "reconciliation"
+      ];
+      final currentType = _claimData!.resubmission?.type;
+      if (currentType == null || !resubmissionOptions.contains(currentType)) {
+        (_claimData!.resubmission ??= ResubmissionData()).type =
+            'internal complaint';
+      }
+
+      _checkAllBalances();
       _validate();
 
       // Log and add to recent files
@@ -315,10 +248,6 @@ class ClaimDataNotifier extends ChangeNotifier {
 
       onMessage?.call('XML file loaded successfully!', false);
     } catch (e) {
-      // Re-throw or handle specific exceptions if needed, but for now propagate
-      // so caller can handle or we can just log/notify here.
-      // Since this is called from loadXmlFile which has try-catch, rethrowing is fine.
-      // But we should probably handle it here to be safe for external callers.
       if (e is XmlParsingException) {
         onMessage?.call(e.message, true);
       } else {
@@ -337,15 +266,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     }
     _setLoading(true);
     try {
-      _claimData!
-        ..gross = grossController.text
-        ..patientShare = patientShareController.text
-        ..net = netController.text;
-      if (_claimData!.resubmission != null) {
-        _claimData!.resubmission!.comment =
-            resubmissionCommentController.text.trim();
-      }
-
       // Perform validation before save
       _validate();
       if (_validationResult != null &&
@@ -364,7 +284,7 @@ class ClaimDataNotifier extends ChangeNotifier {
         return;
       }
 
-      final xmlString = await compute(generateXmlString, _claimData!);
+      final xmlString = await _repository.generateXml(_claimData!);
 
       final claimId = _claimData!.claimId ?? "UNKNOWN";
       final sanitizedId = claimId.replaceAll(RegExp(r'[^\w-]'), '_');
@@ -374,50 +294,25 @@ class ClaimDataNotifier extends ChangeNotifier {
       final finalFileName = customFileName ??
           (shouldRenameFile ? 'claim_$sanitizedId.xml' : baseFileName);
 
-      if (kIsWeb) {
-        final bytes = utf8.encode(xmlString);
-        final blob = html.Blob([bytes]);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..target = 'blank'
-          ..download = finalFileName;
-        anchor.click();
-        html.Url.revokeObjectUrl(url);
-        onMessage?.call("Download started for $finalFileName", false);
+      try {
+        await _repository.saveFile(
+            xmlString: xmlString, fileName: finalFileName, saveAs: saveAs);
+
+        // If save successful (no exception)
+        if (!kIsWeb) {
+          onMessage?.call(
+              "XML file saved successfully to $finalFileName", false);
+        } else {
+          onMessage?.call("Download started for $finalFileName", false);
+        }
+
         _originalActivities =
             _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
         _originalDiagnoses =
             _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
         notifyListeners();
-      } else {
-        String? outputFile;
-        if (saveAs) {
-          outputFile = await FilePicker.platform.saveFile(
-            dialogTitle: 'Please select an output file:',
-            fileName: finalFileName,
-            type: FileType.custom,
-            allowedExtensions: ['xml'],
-          );
-        } else {
-          final downloadsDir = await getDownloadsDirectory();
-          if (downloadsDir == null) {
-            throw Exception("Could not find Downloads directory.");
-          }
-          outputFile = p.join(downloadsDir.path, finalFileName);
-        }
-        if (outputFile != null) {
-          await File(outputFile).writeAsString(xmlString);
-          onMessage?.call(
-              "XML file saved successfully to ${p.basename(outputFile)}",
-              false);
-          _originalActivities =
-              _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
-          _originalDiagnoses =
-              _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
-          notifyListeners();
-        } else {
-          onMessage?.call("Save operation cancelled.", false);
-        }
+      } on UserCancelledException {
+        onMessage?.call("Save operation cancelled.", false);
       }
     } catch (e) {
       onMessage?.call("Error saving file: $e", true);
@@ -437,7 +332,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     transferOnDelete = false;
     _cptDescriptions.clear();
     _validationResult = null;
-    _updateControllers();
     notifyListeners();
     onMessage?.call('Data has been cleared.', false);
   }
@@ -539,9 +433,11 @@ class ClaimDataNotifier extends ChangeNotifier {
       }
     }
     final patientShare = max(0.0, _originalPatientShare - deletedCopay);
-    netController.text = totalNet.toStringAsFixed(2);
-    patientShareController.text = patientShare.toStringAsFixed(2);
-    grossController.text = (totalNet + patientShare).toStringAsFixed(2);
+
+    // Update model directly
+    _claimData!.net = totalNet.toStringAsFixed(2);
+    _claimData!.patientShare = patientShare.toStringAsFixed(2);
+    _claimData!.gross = (totalNet + patientShare).toStringAsFixed(2);
     _checkAllBalances();
     _validate();
     notifyListeners();
@@ -603,7 +499,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     if (_claimData == null) return;
     _claimData!.activities =
         _originalActivities.map((a) => ActivityData.clone(a)).toList();
-    _updateControllers();
     _validate();
     notifyListeners();
   }
@@ -641,32 +536,16 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   Future<void> addOrEditResubmissionAttachment() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-      );
+      final base64String = await _repository.pickPdfFile();
 
-      if (result != null) {
-        String? base64String;
-        if (kIsWeb) {
-          final bytes = result.files.single.bytes!;
-          base64String = AttachmentHelper.encodeFromBytes(bytes);
-        } else if (result.files.single.path != null) {
-          base64String =
-              await AttachmentHelper.encodeFromFile(result.files.single.path!);
-        }
-
-        if (base64String != null) {
-          if (_claimData?.resubmission != null) {
-            _claimData!.resubmission!.attachment = base64String;
-            onMessage?.call('Attachment updated successfully.', false);
-            notifyListeners();
-          } else {
-            onMessage?.call(
-                'Cannot add attachment, no resubmission data exists.', true);
-          }
+      if (base64String != null) {
+        if (_claimData?.resubmission != null) {
+          _claimData!.resubmission!.attachment = base64String;
+          onMessage?.call('Attachment updated successfully.', false);
+          notifyListeners();
         } else {
-          onMessage?.call('Error processing file attachment.', true);
+          onMessage?.call(
+              'Cannot add attachment, no resubmission data exists.', true);
         }
       } else {
         onMessage?.call('File selection cancelled.', false);
@@ -784,15 +663,5 @@ class ClaimDataNotifier extends ChangeNotifier {
     } else {
       onMessage?.call('No observations found to merge.', true);
     }
-  }
-
-  @override
-  void dispose() {
-    grossController.dispose();
-    patientShareController.dispose();
-    netController.dispose();
-    resubmissionCommentController.dispose();
-
-    super.dispose();
   }
 }

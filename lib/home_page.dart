@@ -213,6 +213,8 @@ class _HomePageState extends State<HomePage> with WindowListener {
     final notifier = context.watch<ClaimDataNotifier>();
     final bool isDataLoaded = notifier.claimData != null;
 
+    final bool isMac = defaultTargetPlatform == TargetPlatform.macOS;
+
     return Actions(
       actions: <Type, Action<Intent>>{
         OpenIntent: CallbackAction<OpenIntent>(
@@ -230,143 +232,255 @@ class _HomePageState extends State<HomePage> with WindowListener {
         shortcuts: <ShortcutActivator, Intent>{
           // ... (shortcuts)
           SingleActivator(LogicalKeyboardKey.keyO,
-                  meta: defaultTargetPlatform == TargetPlatform.macOS,
-                  control: defaultTargetPlatform != TargetPlatform.macOS):
-              OpenIntent(),
+              meta: isMac, control: !isMac): OpenIntent(),
           SingleActivator(LogicalKeyboardKey.keyS,
-                  meta: defaultTargetPlatform == TargetPlatform.macOS,
-                  control: defaultTargetPlatform != TargetPlatform.macOS):
-              SaveIntent(),
+              meta: isMac, control: !isMac): SaveIntent(),
           SingleActivator(LogicalKeyboardKey.keyS,
-              meta: defaultTargetPlatform == TargetPlatform.macOS,
-              control: defaultTargetPlatform != TargetPlatform.macOS,
-              shift: true): SaveAsIntent(),
+              meta: isMac, control: !isMac, shift: true): SaveAsIntent(),
         },
-        child: Scaffold(
-          key: _scaffoldKey, // Assigned key
-          appBar: AppBar(
-            backgroundColor:
-                kIsWeb ? null : Theme.of(context).colorScheme.surface,
-            elevation: kIsWeb ? null : 0,
-            automaticallyImplyLeading:
-                kIsWeb, // Hide native hamburger on desktop
-            titleSpacing:
-                0, // Remove default spacing to control padding manually
-            title: kIsWeb
-                ? Row(
-                    children: [
-                      Expanded(
-                        child: Text('project_xmedit - v$_version'),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      if (defaultTargetPlatform == TargetPlatform.macOS &&
-                          !_isFullScreen)
-                        const SizedBox(width: 80), // Traffic lights spacer
-
-                      // Custom Hamburger Menu
-                      IconButton(
-                        icon: const Icon(Icons.menu),
-                        onPressed: () =>
-                            _scaffoldKey.currentState?.openDrawer(),
-                        tooltip: 'Open Menu',
-                      ),
-
-                      // Drag area fills the rest
-                      Expanded(
-                        child: DragToMoveArea(
-                          child: Container(
-                            color: Colors.transparent,
-                            height: 56,
-                            alignment: Alignment.centerLeft,
-                            child: const SizedBox.shrink(), // Or title text
-                          ),
-                        ),
+        child: PlatformMenuBar(
+          menus: [
+            if (isMac)
+              PlatformMenu(
+                label: 'XMEdit',
+                menus: [
+                  PlatformMenuItemGroup(
+                    members: [
+                      PlatformMenuItem(
+                        label: 'About XMEdit',
+                        onSelected: () {
+                          showAboutDialog(
+                            context: context,
+                            applicationName: 'XMEdit',
+                            applicationVersion: 'v$_version',
+                            applicationLegalese: 'Â© 2026 XMEdit Team',
+                          );
+                        },
                       ),
                     ],
                   ),
-            actions: [
-              // ... (actions)
-              FilledButton.icon(
-                icon: const Icon(Icons.folder_open_outlined),
-                label: const Text("Open"),
-                onPressed: notifier.loadXmlFile,
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.secondaryContainer,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onSecondaryContainer,
-                ),
+                  const PlatformMenuItemGroup(members: [
+                    PlatformProvidedMenuItem(
+                        type: PlatformProvidedMenuItemType.quit),
+                  ]),
+                ],
               ),
-              const SizedBox(width: 8),
-              TextButton.icon(
-                icon: const Icon(Icons.clear_all),
-                label: const Text("Clear All"),
-                onPressed: isDataLoaded ? notifier.clearData : null,
-              ),
-              const VerticalDivider(indent: 12, endIndent: 12),
-              if (isDataLoaded) ...[
-                Row(
-                  children: [
-                    const Text('PROD',
-                        style: TextStyle(
-                            fontSize: 10, fontWeight: FontWeight.bold)),
-                    Transform.scale(
-                      scale: 0.8,
-                      child: Switch(
-                        value: notifier.dispositionFlag == 'TEST',
-                        onChanged: (val) => notifier
-                            .setDispositionFlag(val ? 'TEST' : 'PRODUCTION'),
-                        activeTrackColor: Colors.orange.withValues(alpha: 0.5),
-                        activeThumbColor: Colors.orange,
-                      ),
+            PlatformMenu(
+              label: 'File',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Open...',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyO,
+                          meta: true),
+                      onSelected: () => notifier.loadXmlFile(),
                     ),
-                    const Text('TEST',
-                        style: TextStyle(
-                            fontSize: 10, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
                   ],
                 ),
-                const VerticalDivider(indent: 12, endIndent: 12),
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Save',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyS,
+                          meta: true),
+                      onSelected: isDataLoaded
+                          ? () => notifier.saveXmlFile(saveAs: false)
+                          : null,
+                    ),
+                    PlatformMenuItem(
+                      label: 'Save As...',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyS,
+                          meta: true, shift: true),
+                      onSelected:
+                          isDataLoaded ? () => _handleSaveAs(notifier) : null,
+                    ),
+                  ],
+                ),
               ],
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: FilterChip(
-                  label: const Text('Rename on Apply'),
-                  selected: notifier.shouldRenameFile,
-                  onSelected: isDataLoaded ? notifier.toggleRenameFile : null,
+            ),
+            PlatformMenu(
+              label: 'Edit',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Undo',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyZ,
+                          meta: true),
+                      onSelected: () {
+                        // Implement undo if available or wire to existing logic
+                      },
+                    ),
+                    PlatformMenuItem(
+                      label: 'Redo',
+                      shortcut: const SingleActivator(LogicalKeyboardKey.keyZ,
+                          meta: true, shift: true),
+                      onSelected: () {
+                        // Implement redo
+                      },
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                icon: const Icon(Icons.save_outlined),
-                label: const Text("Apply"),
-                onPressed: isDataLoaded
-                    ? () => notifier.saveXmlFile(saveAs: false)
-                    : null,
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
+                if (isDataLoaded)
+                  PlatformMenuItemGroup(
+                    members: [
+                      PlatformMenuItem(
+                        label: 'Clear All',
+                        onSelected: () => notifier.clearData(),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            PlatformMenu(
+              label: 'View',
+              menus: [
+                PlatformMenuItemGroup(
+                  members: [
+                    PlatformMenuItem(
+                      label: 'Toggle Theme',
+                      onSelected: () {
+                        context.read<ThemeNotifier>().toggleTheme();
+                      },
+                    ),
+                    if (isMac)
+                      PlatformMenuItem(
+                        label: 'Toggle Full Screen',
+                        onSelected: () async {
+                          bool isFullScreen =
+                              await windowManager.isFullScreen();
+                          await windowManager.setFullScreen(!isFullScreen);
+                        },
+                      ),
+                  ],
                 ),
+              ],
+            ),
+            if (isMac)
+              const PlatformMenu(
+                label: 'Window',
+                menus: [
+                  PlatformProvidedMenuItem(
+                      type: PlatformProvidedMenuItemType.minimizeWindow),
+                  PlatformProvidedMenuItem(
+                      type: PlatformProvidedMenuItemType.zoomWindow),
+                ],
               ),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: isDataLoaded ? () => _handleSaveAs(notifier) : null,
-                child: const Text("Save As..."),
+          ],
+          child: Scaffold(
+            key: _scaffoldKey, // Assigned key
+            appBar: AppBar(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              elevation: 0,
+              automaticallyImplyLeading:
+                  kIsWeb, // Hide native hamburger on desktop
+              titleSpacing:
+                  0, // Remove default spacing to control padding manually
+              title: Row(
+                children: [
+                  if (isMac && !kIsWeb && !_isFullScreen)
+                    const SizedBox(width: 80), // Traffic lights spacer
+
+                  // Custom Hamburger Menu
+                  IconButton(
+                    icon: const Icon(Icons.menu),
+                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    tooltip: 'Open Menu',
+                  ),
+
+                  // Drag area fills the rest
+                  Expanded(
+                    child: DragToMoveArea(
+                      child: Container(
+                        color: Colors.transparent,
+                        height: 56,
+                        alignment: Alignment.centerLeft,
+                        child: const SizedBox.shrink(), // Or title text
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              // We can keep WindowButtons or hide them since we have native ones (min/max/close)
-              // The request implies "MacOS menu bar into apps menu bar" which usually means unified title bar.
-              // Native macOS buttons (traffic lights) are sufficient. Non-macOS might need them.
-              if (!kIsWeb && defaultTargetPlatform != TargetPlatform.macOS)
-                const WindowButtons(),
-              const SizedBox(width: 4.0),
-            ],
+              actions: [
+                // ... (actions)
+                FilledButton.icon(
+                  icon: const Icon(Icons.folder_open_outlined),
+                  label: const Text("Open"),
+                  onPressed: notifier.loadXmlFile,
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.secondaryContainer,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onSecondaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  icon: const Icon(Icons.clear_all),
+                  label: const Text("Clear All"),
+                  onPressed: isDataLoaded ? notifier.clearData : null,
+                ),
+                const VerticalDivider(indent: 12, endIndent: 12),
+                if (isDataLoaded) ...[
+                  Row(
+                    children: [
+                      const Text('PROD',
+                          style: TextStyle(
+                              fontSize: 10, fontWeight: FontWeight.bold)),
+                      Transform.scale(
+                        scale: 0.8,
+                        child: Switch(
+                          value: notifier.dispositionFlag == 'TEST',
+                          onChanged: (val) => notifier
+                              .setDispositionFlag(val ? 'TEST' : 'PRODUCTION'),
+                          activeTrackColor:
+                              Colors.orange.withValues(alpha: 0.5),
+                          activeThumbColor: Colors.orange,
+                        ),
+                      ),
+                      const Text('TEST',
+                          style: TextStyle(
+                              fontSize: 10, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                  const VerticalDivider(indent: 12, endIndent: 12),
+                ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: FilterChip(
+                    label: const Text('Rename on Apply'),
+                    selected: notifier.shouldRenameFile,
+                    onSelected: isDataLoaded ? notifier.toggleRenameFile : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  icon: const Icon(Icons.save_outlined),
+                  label: const Text("Apply"),
+                  onPressed: isDataLoaded
+                      ? () => notifier.saveXmlFile(saveAs: false)
+                      : null,
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed:
+                      isDataLoaded ? () => _handleSaveAs(notifier) : null,
+                  child: const Text("Save As..."),
+                ),
+                const SizedBox(width: 8),
+                if (!kIsWeb && !isMac) const WindowButtons(),
+                const SizedBox(width: 4.0),
+              ],
+            ),
+            drawer: const AppDrawer(),
+            body: const BodyContent(),
           ),
-          drawer: const AppDrawer(),
-          body: const BodyContent(),
         ),
       ),
     );

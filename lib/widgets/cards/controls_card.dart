@@ -4,14 +4,44 @@ import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/widgets.dart';
 import 'package:project_xmedit/widgets/common/selection_card.dart';
 
-class ControlsResubmissionCard extends StatelessWidget {
+class ControlsResubmissionCard extends StatefulWidget {
   const ControlsResubmissionCard({super.key});
+
+  @override
+  State<ControlsResubmissionCard> createState() =>
+      _ControlsResubmissionCardState();
+}
+
+class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
+  late TextEditingController _commentController;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<ClaimDataNotifier>();
     final selectedType =
         notifier.claimData?.resubmission?.type ?? 'internal complaint';
+
+    // Sync from provider if external change
+    if (notifier.claimData?.resubmission?.comment != null) {
+      if (_commentController.text !=
+              notifier.claimData!.resubmission!.comment &&
+          !_commentController.selection.isValid) {
+        _commentController.text =
+            notifier.claimData!.resubmission!.comment ?? '';
+      }
+    }
 
     const List<String> resubmissionOptions = [
       "correction",
@@ -41,7 +71,7 @@ class ControlsResubmissionCard extends StatelessWidget {
         const SizedBox(height: 8),
         ScrollableOnHover(
           child: TextFormField(
-            controller: notifier.resubmissionCommentController,
+            controller: _commentController,
             decoration: const InputDecoration(
               labelText: 'Resubmission Comment',
               border: OutlineInputBorder(),
@@ -50,6 +80,13 @@ class ControlsResubmissionCard extends StatelessWidget {
             ),
             maxLines: 3,
             minLines: 3,
+            onChanged: (value) {
+              if (notifier.claimData?.resubmission != null) {
+                notifier.claimData!.resubmission!.comment = value;
+                // No need to notify listeners for comment change unless we validate it?
+                // Save operation reads from claimData now (in my planned refactor).
+              }
+            },
           ),
         ),
       ],
