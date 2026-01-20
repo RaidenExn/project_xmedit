@@ -9,6 +9,8 @@ class TotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<ClaimDataNotifier>();
+    final validationResult = notifier.validationResult;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -16,12 +18,15 @@ class TotalsCard extends StatelessWidget {
           label: 'Gross:',
           controller: notifier.grossController,
           difference: notifier.grossDifference,
+          validationError: validationResult?.getFirstErrorForField('gross'),
           onChanged: () => notifier.onTotalsEdited('gross'),
         ),
         const SizedBox(height: 4),
         FinancialInputField(
           label: 'PatientShare:',
           controller: notifier.patientShareController,
+          validationError:
+              validationResult?.getFirstErrorForField('patientShare'),
           onChanged: () => notifier.onTotalsEdited('pshare'),
         ),
         const SizedBox(height: 4),
@@ -29,6 +34,7 @@ class TotalsCard extends StatelessWidget {
           label: 'Net:',
           controller: notifier.netController,
           difference: notifier.netDifference,
+          validationError: validationResult?.getFirstErrorForField('net'),
           onChanged: () => notifier.onTotalsEdited('net'),
         ),
       ],

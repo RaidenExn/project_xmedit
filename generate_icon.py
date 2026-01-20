@@ -82,5 +82,25 @@ def draw_icon():
     final_img.save('assets/icon.png')
     print("Icon generated at assets/icon.png")
 
+    # Generate macOS icons
+    macos_icon_path = 'macos/Runner/Assets.xcassets/AppIcon.appiconset'
+    if not os.path.exists(macos_icon_path):
+        os.makedirs(macos_icon_path)
+
+    sizes = {
+        16: 'app_icon_16.png',
+        32: 'app_icon_32.png',
+        64: 'app_icon_64.png',
+        128: 'app_icon_128.png',
+        256: 'app_icon_256.png',
+        512: 'app_icon_512.png',
+        1024: 'app_icon_1024.png'
+    }
+
+    for size, filename in sizes.items():
+        resized_img = final_img.resize((size, size), Image.LANCZOS)
+        resized_img.save(os.path.join(macos_icon_path, filename))
+        print(f"Generated macOS icon: {filename} ({size}x{size})")
+
 if __name__ == "__main__":
     draw_icon()

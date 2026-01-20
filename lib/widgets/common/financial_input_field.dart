@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:project_xmedit/models/validation_result.dart';
+import 'package:project_xmedit/widgets/validation_widgets.dart';
 
 class FinancialInputField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final String? difference;
+  final ValidationError? validationError;
   final VoidCallback onChanged;
 
   const FinancialInputField({
@@ -13,6 +16,7 @@ class FinancialInputField extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     this.difference,
+    this.validationError,
   });
 
   @override
@@ -60,6 +64,11 @@ class FinancialInputField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6.0),
             child: Text(difference!,
                 style: TextStyle(color: theme.colorScheme.error, fontSize: 12)),
+          ),
+        if (validationError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: ValidationIndicator(error: validationError!, size: 16),
           ),
         IconButton(
           icon: const Icon(Icons.copy, size: 16),

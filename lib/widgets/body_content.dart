@@ -12,6 +12,7 @@ import 'package:project_xmedit/widgets/cards/activities_card.dart';
 import 'package:project_xmedit/dialogs/add_activity_dialog.dart';
 import 'package:project_xmedit/dialogs/diagnosis_search_dialog.dart';
 import 'package:project_xmedit/widgets/common/measure_size.dart';
+import 'package:project_xmedit/widgets/validation_widgets.dart';
 
 class BodyContent extends StatefulWidget {
   const BodyContent({super.key});
@@ -107,6 +108,27 @@ class _BodyContentState extends State<BodyContent> {
     }
 
     final childrenSlivers = <Widget>[];
+
+    // --- 0. Validation Summary ---
+    if (claimNotifier.validationResult != null &&
+        claimNotifier.validationResult!.errors.isNotEmpty) {
+      childrenSlivers.add(SliverToBoxAdapter(
+        child: Center(
+          child: IntrinsicWidth(
+            child: ConstrainedBox(
+              constraints:
+                  const BoxConstraints(maxWidth: 800), // Reasonable max width
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: spacing),
+                child: ValidationSummaryPanel(
+                  validationResult: claimNotifier.validationResult!,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ));
+    }
 
     // --- 1. Claim Details (The Driver of Width) ---
     // We render this inside an IntrinsicWidth -> MeasureSize block to capture its natural Row width.

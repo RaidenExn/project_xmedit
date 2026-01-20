@@ -11,8 +11,17 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/models/claim_models.dart';
-import 'package:project_xmedit/services/xml_service.dart';
+import 'package:project_xmedit/services/xml_service.dart'
+    show
+        parseXmlInBackground,
+        generateXmlString,
+        XmlParsingException,
+        detectBulkXml;
 import 'package:project_xmedit/utils/attachment_helper.dart';
+import 'package:project_xmedit/services/logger.dart';
+import 'package:project_xmedit/services/preferences_service.dart';
+import 'package:project_xmedit/services/xml_validator.dart';
+import 'package:project_xmedit/models/validation_result.dart';
 
 class ClaimDataNotifier extends ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -23,6 +32,7 @@ class ClaimDataNotifier extends ChangeNotifier {
   String? _originalFilePath;
   double _originalPatientShare = 0.0;
   void Function(String message, bool isError)? onMessage;
+  void Function(String xmlString, String? filePath)? onBulkXmlDetected;
 
   bool shouldRenameFile = true;
   String? originalResubmissionType;
@@ -32,19 +42,13 @@ class ClaimDataNotifier extends ChangeNotifier {
   bool isDiagnosisEditingEnabled = false;
 
   bool transferOnDelete = true;
+  ValidationResult? _validationResult;
 
   final TextEditingController grossController = TextEditingController();
   final TextEditingController patientShareController = TextEditingController();
   final TextEditingController netController = TextEditingController();
   final TextEditingController resubmissionCommentController =
       TextEditingController();
-
-  List<TextEditingController> activityNetControllers = []; // Deprecated
-  List<TextEditingController> activityCopayControllers = []; // Deprecated
-  List<TextEditingController> activityQuantityControllers = []; // Deprecated
-  List<TextEditingController> activityPriorAuthControllers = []; // Deprecated
-  Map<String, TextEditingController> activityDslCodeControllers =
-      {}; // Deprecated
 
   ClaimDataNotifier() {
     _dbHelper.database;
@@ -54,6 +58,7 @@ class ClaimDataNotifier extends ChangeNotifier {
   ClaimData? get claimData => _claimData;
   bool get isLoading => _isLoading;
   List<ActivityData> get originalActivities => _originalActivities;
+  ValidationResult? get validationResult => _validationResult;
 
   Map<String, List<ActivityData>> get groupedActivities {
     if (_claimData == null) return {};
@@ -138,6 +143,7 @@ class ClaimDataNotifier extends ChangeNotifier {
           'Resubmission type automatically set to "correction" due to DSL code edit.',
           false);
     }
+    _validate();
     notifyListeners();
   }
 
@@ -169,10 +175,12 @@ class ClaimDataNotifier extends ChangeNotifier {
       notifyListeners();
     }
     checkBalances();
+    _validate();
   }
 
   void _onControllerChanged() {
     _checkAllBalances();
+    _validate();
     notifyListeners();
   }
 
@@ -207,6 +215,25 @@ class ClaimDataNotifier extends ChangeNotifier {
         (diff.abs() > 0.001) ? "(Δ ${diff.toStringAsFixed(2)})" : "";
   }
 
+  void _validate() {
+    if (_claimData != null) {
+      // Ensure controllers are synced before validation if needed, but
+      // XmlValidator reads from ClaimData.
+      // We must sync basic fields from controllers to ClaimData for validation
+      _claimData!.gross = grossController.text;
+      _claimData!.patientShare = patientShareController.text;
+      _claimData!.net = netController.text;
+      if (_claimData!.resubmission != null) {
+        _claimData!.resubmission!.comment = resubmissionCommentController.text;
+      }
+
+      _validationResult = XmlValidator.validateClaim(_claimData!);
+      // notifyListeners() is usually called by the caller of _validate() or we can call it here if standalone
+    } else {
+      _validationResult = null;
+    }
+  }
+
   void _checkAllBalances() => _checkNetBalance();
 
   Future<void> loadXmlFile() async {
@@ -237,24 +264,7 @@ class ClaimDataNotifier extends ChangeNotifier {
           return;
         }
 
-        final claimData = await compute(parseXmlInBackground, xmlString);
-
-        _claimData = claimData;
-        _originalFilePath = filePath;
-        // Store original activities for comparison
-        _originalDiagnoses =
-            _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
-        _originalActivities =
-            _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
-        isDiagnosisEditingEnabled = false;
-        final activityCodes = _claimData!.activities
-            .map((a) => a.code)
-            .whereType<String>()
-            .toSet();
-        _cptDescriptions =
-            await _dbHelper.getDescriptionsForCptCodes(activityCodes);
-        _updateControllers();
-        onMessage?.call('XML file loaded successfully!', false);
+        await loadFromXmlString(xmlString, filePath);
       } else {
         onMessage?.call('File selection cancelled.', false);
       }
@@ -266,6 +276,56 @@ class ClaimDataNotifier extends ChangeNotifier {
       if (loadingStarted) {
         _setLoading(false);
       }
+    }
+  }
+
+  Future<void> loadFromXmlString(String xmlString, String? filePath) async {
+    try {
+      _setLoading(true);
+
+      // Check if this is bulk XML (multiple claims)
+      if (detectBulkXml(xmlString)) {
+        // Delegate to bulk editor
+        onBulkXmlDetected?.call(xmlString, filePath);
+        return;
+      }
+
+      final claimData = await compute(parseXmlInBackground, xmlString);
+
+      _claimData = claimData;
+      _originalFilePath = filePath;
+      // Store original activities for comparison
+      _originalDiagnoses =
+          _claimData!.diagnoses.map((d) => DiagnosisData.clone(d)).toList();
+      _originalActivities =
+          _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
+      isDiagnosisEditingEnabled = false;
+      final activityCodes =
+          _claimData!.activities.map((a) => a.code).whereType<String>().toSet();
+      _cptDescriptions =
+          await _dbHelper.getDescriptionsForCptCodes(activityCodes);
+      _updateControllers();
+      _validate();
+
+      // Log and add to recent files
+      if (filePath != null) {
+        AppLogger.logFileOperation('Loaded XML', filePath);
+        await PreferencesService.addRecentFile(filePath);
+      }
+
+      onMessage?.call('XML file loaded successfully!', false);
+    } catch (e) {
+      // Re-throw or handle specific exceptions if needed, but for now propagate
+      // so caller can handle or we can just log/notify here.
+      // Since this is called from loadXmlFile which has try-catch, rethrowing is fine.
+      // But we should probably handle it here to be safe for external callers.
+      if (e is XmlParsingException) {
+        onMessage?.call(e.message, true);
+      } else {
+        onMessage?.call('An unexpected error occurred: $e', true);
+      }
+    } finally {
+      _setLoading(false);
     }
   }
 
@@ -285,7 +345,24 @@ class ClaimDataNotifier extends ChangeNotifier {
         _claimData!.resubmission!.comment =
             resubmissionCommentController.text.trim();
       }
+
+      // Perform validation before save
+      _validate();
+      if (_validationResult != null &&
+          _validationResult!.criticalErrors.isNotEmpty) {
+        onMessage?.call(
+            "Cannot save: ${_validationResult!.criticalErrors.length} critical errors found. Please check validaton panel.",
+            true);
+        _setLoading(false);
+        return;
+      }
       // Activities are now updated in real-time, no need to sync from controllers here
+
+      // Double check validation one last time
+      if (!XmlValidator.canSave(_claimData!)) {
+        onMessage?.call("Validation failed unexpectedly.", true);
+        return;
+      }
 
       final xmlString = await compute(generateXmlString, _claimData!);
 
@@ -359,6 +436,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     isDiagnosisEditingEnabled = false;
     transferOnDelete = false;
     _cptDescriptions.clear();
+    _validationResult = null;
     _updateControllers();
     notifyListeners();
     onMessage?.call('Data has been cleared.', false);
@@ -407,6 +485,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
     activity.isDeleted = !activity.isDeleted;
     _checkAllBalances();
+    _validate();
     notifyListeners();
   }
 
@@ -416,6 +495,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       act.isDeleted = true;
     }
     _checkAllBalances();
+    _validate();
     notifyListeners();
   }
 
@@ -425,6 +505,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       act.isDeleted = false;
     }
     _checkAllBalances();
+    _validate();
     notifyListeners();
   }
 
@@ -437,8 +518,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       // Re-calculate balances
       _checkAllBalances();
 
-      // Re-calculate balances
-      _checkAllBalances();
+      _validate();
 
       notifyListeners();
       onMessage?.call('Activity added successfully.', false);
@@ -463,6 +543,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     patientShareController.text = patientShare.toStringAsFixed(2);
     grossController.text = (totalNet + patientShare).toStringAsFixed(2);
     _checkAllBalances();
+    _validate();
     notifyListeners();
   }
 
@@ -483,6 +564,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     final resubmission = _claimData?.resubmission;
     if (resubmission != null) {
       resubmission.type = newType;
+      _validate();
       notifyListeners();
     }
   }
@@ -494,6 +576,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       return;
     }
     _claimData!.diagnoses.add(DiagnosisData(code: code, type: 'Secondary'));
+    _validate();
     notifyListeners();
   }
 
@@ -504,6 +587,7 @@ class ClaimDataNotifier extends ChangeNotifier {
         _claimData!.diagnoses.isNotEmpty) {
       _claimData!.diagnoses.first.type = 'Principal';
     }
+    _validate();
     notifyListeners();
   }
 
@@ -511,6 +595,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     if (_claimData == null) return;
     _claimData!.diagnoses =
         _originalDiagnoses.map((d) => DiagnosisData.clone(d)).toList();
+    _validate();
     notifyListeners();
   }
 
@@ -519,6 +604,16 @@ class ClaimDataNotifier extends ChangeNotifier {
     _claimData!.activities =
         _originalActivities.map((a) => ActivityData.clone(a)).toList();
     _updateControllers();
+    _validate();
+    notifyListeners();
+  }
+
+  String get dispositionFlag => _claimData?.dispositionFlag ?? 'PRODUCTION';
+
+  void setDispositionFlag(String value) {
+    if (_claimData == null) return;
+    _claimData!.dispositionFlag = value;
+    _validate();
     notifyListeners();
   }
 
@@ -527,6 +622,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     for (final diag in _claimData!.diagnoses) {
       diag.type = (diag.id == id) ? 'Principal' : 'Secondary';
     }
+    _validate();
     notifyListeners();
   }
 

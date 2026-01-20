@@ -27,7 +27,7 @@ class _MeasureSizeState extends State<MeasureSize> {
     );
   }
 
-  void _postFrameCallback(_) {
+  void _postFrameCallback(Duration _) {
     final context = this.context;
     if (!context.mounted) return;
 

@@ -4,6 +4,7 @@ import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/models/claim_models.dart';
 import 'package:project_xmedit/widgets/common/custom_table.dart';
+import 'package:project_xmedit/widgets/validation_widgets.dart';
 
 const Map<String, int> _diagnosisColumnFlex = {
   'code': 3,
@@ -38,6 +39,7 @@ class DiagnosisCard extends StatelessWidget {
             key: ValueKey(diag.id),
             notifier: notifier,
             diag: diag,
+            index: idx,
             isZebra: idx.isEven,
           );
         })
@@ -81,12 +83,14 @@ class _DiagnosisTableHeader extends StatelessWidget {
 class _DiagnosisDataRow extends StatefulWidget {
   final ClaimDataNotifier notifier;
   final DiagnosisData diag;
+  final int index;
   final bool isZebra;
 
   const _DiagnosisDataRow(
       {super.key,
       required this.notifier,
       required this.diag,
+      required this.index,
       required this.isZebra});
 
   @override
@@ -130,7 +134,23 @@ class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
           children: [
             Expanded(
               flex: _diagnosisColumnFlex['code']!,
-              child: Text(widget.diag.code ?? '', style: textStyle),
+              child: Row(
+                children: [
+                  Text(widget.diag.code ?? '', style: textStyle),
+                  if (widget.notifier.validationResult?.getFirstErrorForField(
+                          'diagnosis_${widget.index + 1}_code') !=
+                      null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4.0),
+                      child: ValidationIndicator(
+                        error: widget.notifier.validationResult!
+                            .getFirstErrorForField(
+                                'diagnosis_${widget.index + 1}_code'),
+                        size: 16,
+                      ),
+                    ),
+                ],
+              ),
             ),
             Expanded(
               flex: _diagnosisColumnFlex['desc']!,

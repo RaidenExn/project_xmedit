@@ -32,3 +32,5 @@ app.dSYM/
 DerivedData/
 
 !pubspec.lock
+
+sample_xmls

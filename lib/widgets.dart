@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/foundation.dart';
+import 'package:project_xmedit/models/validation_result.dart';
+import 'package:project_xmedit/widgets/validation_widgets.dart';
 
 class ScrollableOnHover extends StatelessWidget {
   final Widget child;
@@ -114,8 +116,13 @@ class ClaimDataSection extends StatelessWidget {
 class DataFieldWithCopy extends StatelessWidget {
   final String label;
   final String value;
+  final ValidationError? validationError;
+
   const DataFieldWithCopy(
-      {super.key, required this.label, required this.value});
+      {super.key,
+      required this.label,
+      required this.value,
+      this.validationError});
 
   void _copyToClipboard(BuildContext context) {
     final String textToCopy = value.isEmpty ? 'N/A' : value;
@@ -143,7 +150,16 @@ class DataFieldWithCopy extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: theme.textTheme.bodySmall),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label, style: theme.textTheme.bodySmall),
+                  if (validationError != null) ...[
+                    const SizedBox(width: 4),
+                    ValidationIndicator(error: validationError!, size: 16),
+                  ],
+                ],
+              ),
               const SizedBox(height: 2.0),
               Text(
                 value.isEmpty ? 'N/A' : value,
@@ -168,7 +184,13 @@ class DataFieldWithCopy extends StatelessWidget {
 class SimpleDataField extends StatelessWidget {
   final String label;
   final String value;
-  const SimpleDataField({super.key, required this.label, required this.value});
+  final ValidationError? validationError;
+
+  const SimpleDataField(
+      {super.key,
+      required this.label,
+      required this.value,
+      this.validationError});
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +205,16 @@ class SimpleDataField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: theme.textTheme.bodySmall),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: theme.textTheme.bodySmall),
+              if (validationError != null) ...[
+                const SizedBox(width: 4),
+                ValidationIndicator(error: validationError!, size: 16),
+              ],
+            ],
+          ),
           const SizedBox(height: 2.0),
           Text(
             value.isEmpty ? 'N/A' : value,
@@ -201,6 +232,14 @@ class WindowButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) return const SizedBox.shrink();
+
+    // On macOS, traffic lights are OS-owned and positioned by macOS
+    // No need to reserve space in Flutter AppBar
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      return const SizedBox.shrink();
+    }
+
+    // On Windows, use WindowCaption for native window buttons
     final theme = Theme.of(context);
     return SizedBox(
       width: 138,

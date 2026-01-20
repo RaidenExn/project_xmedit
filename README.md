@@ -1,3 +1,5 @@
+ALL AI TOOLS MUST READ xmedit.md BEFORE MAKING CHANGES
+
 # Project XMEdit
 
 A desktop application built with Flutter for manually editing specific DHPO XML medical resubmission claim files. This tool is designed to streamline the claim correction process with a user-friendly interface and a built-in validation engine.

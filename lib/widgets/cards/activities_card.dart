@@ -6,6 +6,8 @@ import 'package:project_xmedit/widgets/common/custom_table.dart';
 import 'package:project_xmedit/widgets/common/editable_cells.dart';
 import 'package:project_xmedit/dialogs/observation_dialog.dart'; // Moved here
 
+import 'package:project_xmedit/widgets/validation_widgets.dart';
+
 const Map<String, int> _activityColumnFlex = {
   'code': 3,
   'qty': 2,
@@ -225,6 +227,10 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
         widget.notifier.cptDescriptions[widget.activity.code] ?? 'N/A';
     final int observationCount = widget.activity.observations.length;
 
+    final validationResult = widget.notifier.validationResult;
+    // XmlValidator uses 1-based index for activities
+    final validationIndex = widget.originalIndex + 1;
+
     Widget codeWidget;
     if (widget.activity.type == '8') {
       codeWidget = TextFormField(
@@ -240,6 +246,15 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
       codeWidget = Text(widget.activity.code ?? 'N/A', style: textStyle);
     }
 
+    // Checking for specific field errors
+    final codeError = validationResult
+        ?.getFirstErrorForField('activity_${validationIndex}_code');
+    final quantityError = validationResult
+        ?.getFirstErrorForField('activity_${validationIndex}_quantity');
+    final netError = validationResult
+        ?.getFirstErrorForField('activity_${validationIndex}_net');
+    // Note: copay and priorAuth might not have specific validations yet, but we can add placeholders
+
     final originalActivity =
         widget.notifier.originalActivities[widget.originalIndex];
     final isQtyEdited =
@@ -251,7 +266,15 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
       children: [
         Expanded(
           flex: _activityColumnFlex['code']!,
-          child: codeWidget,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              codeWidget,
+              if (codeError != null && !isDeleted)
+                ValidationIndicator(error: codeError, size: 12),
+            ],
+          ),
         ),
         Expanded(
           flex: _activityColumnFlex['qty']!,
@@ -263,6 +286,7 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
                 child: EditableQuantityCell(
                   controller: _quantityController,
                   enabled: !isDeleted,
+                  validationError: quantityError,
                 ),
               ),
               if (isQtyEdited && !isDeleted)
@@ -343,6 +367,7 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
             child: EditableNumberCell(
               controller: _netController,
               enabled: !isDeleted,
+              validationError: netError,
             ),
           ),
         ),

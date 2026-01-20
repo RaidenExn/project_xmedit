@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project_xmedit/home_page.dart';
 import 'package:project_xmedit/notifiers.dart';
+import 'package:project_xmedit/providers/bulk_claim_data_provider.dart';
+import 'package:project_xmedit/services/native_menu_service.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
@@ -23,14 +25,19 @@ void main() async {
       size: Size(1200, 800),
       minimumSize: Size(1150, 700),
       center: true,
-      title: 'Project XMEdit',
-      titleBarStyle: TitleBarStyle.hidden,
+      title: 'XMEdit',
+      titleBarStyle:
+          TitleBarStyle.hidden, // Use hidden title bar for unified look
     );
 
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.setPreventClose(true);
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
     });
+
+    // Initialize native menu service for macOS menu bar
+    NativeMenuService.initialize();
   }
 
   runApp(const MyApp());
@@ -43,6 +50,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) => MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => ClaimDataNotifier()),
+          ChangeNotifierProvider(create: (context) => BulkClaimDataNotifier()),
           ChangeNotifierProvider(create: (context) => ThemeNotifier()),
           ChangeNotifierProvider(create: (context) => CardVisibilityNotifier()),
         ],
@@ -57,7 +65,7 @@ class AppContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
-      title: 'Project XMEdit',
+      title: 'XMEdit',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: themeNotifier.seedColor,
