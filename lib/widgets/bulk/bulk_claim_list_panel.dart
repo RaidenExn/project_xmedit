@@ -50,7 +50,7 @@ class BulkClaimListPanel extends StatelessWidget {
                 isFocused: isFocused,
                 onFocus: () => bulkNotifier.focusClaim(item.index),
                 onSelect: () => bulkNotifier.toggleClaimSelection(item.index),
-                onDelete: () => bulkNotifier.deleteClaim(index),
+                onDelete: () => bulkNotifier.deleteClaim(item.index),
               );
             },
           ),
