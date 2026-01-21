@@ -34,3 +34,6 @@ DerivedData/
 !pubspec.lock
 
 sample_xmls
+
+# Auto-generated files
+version.json

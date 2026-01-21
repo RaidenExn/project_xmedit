@@ -310,12 +310,27 @@ class ClaimDataNotifier extends ChangeNotifier {
       final xmlString = await _repository.generateXml(_claimData!);
 
       final claimId = _claimData!.claimId ?? "UNKNOWN";
-      final sanitizedId = claimId.replaceAll(RegExp(r'[^\w-]'), '_');
+      final sanitizedClaimId = claimId.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
       final baseFileName = _originalFilePath != null
           ? p.basename(_originalFilePath!)
           : 'output.xml';
-      final finalFileName = customFileName ??
-          (shouldRenameFile ? 'claim_$sanitizedId.xml' : baseFileName);
+
+      String finalFileName;
+      if (customFileName != null) {
+        finalFileName = customFileName;
+      } else if (shouldRenameFile) {
+        // Generate filename in format: resub_[claimId]_[tpaName]_[date]_[time].xml
+        final receiverID = _claimData!.receiverID ?? 'UNKNOWN';
+        final sanitizedTpaName =
+            receiverID.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+        final now = DateTime.now();
+        final timestamp =
+            "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}";
+        finalFileName =
+            'resub_${sanitizedClaimId}_${sanitizedTpaName}_$timestamp.xml';
+      } else {
+        finalFileName = baseFileName;
+      }
 
       try {
         await _repository.saveFile(

@@ -8,7 +8,6 @@ class BulkClaimListItemWidget extends StatelessWidget {
   final bool isFocused;
   final VoidCallback onFocus;
   final VoidCallback onSelect;
-  final VoidCallback onDelete;
 
   const BulkClaimListItemWidget({
     super.key,
@@ -17,7 +16,6 @@ class BulkClaimListItemWidget extends StatelessWidget {
     this.isFocused = false,
     required this.onFocus,
     required this.onSelect,
-    required this.onDelete,
   });
 
   @override
@@ -178,18 +176,6 @@ class BulkClaimListItemWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-
-              // Delete button
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  size: 20,
-                  color: theme.colorScheme.error,
-                ),
-                onPressed: onDelete,
-                tooltip: 'Delete claim',
-                visualDensity: VisualDensity.compact,
               ),
             ],
           ),

@@ -5,12 +5,17 @@ import 'package:project_xmedit/providers/bulk_claim_data_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Get app version
+  final packageInfo = await PackageInfo.fromPlatform();
+  final appTitle = 'project_xmedit ${packageInfo.version}';
 
   if (kIsWeb) {
     databaseFactory = databaseFactoryFfiWeb;
@@ -20,11 +25,11 @@ void main() async {
 
     await windowManager.ensureInitialized();
 
-    const windowOptions = WindowOptions(
-      size: Size(1200, 800),
-      minimumSize: Size(1150, 700),
+    final windowOptions = WindowOptions(
+      size: const Size(1200, 800),
+      minimumSize: const Size(1150, 700),
       center: true,
-      title: 'project_xmedit',
+      title: appTitle,
       titleBarStyle: TitleBarStyle.normal,
     );
 
@@ -35,11 +40,13 @@ void main() async {
     });
   }
 
-  runApp(const MyApp());
+  runApp(MyApp(title: appTitle));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String title;
+
+  const MyApp({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) => MultiProvider(
@@ -48,18 +55,20 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (context) => BulkClaimDataNotifier()),
           ChangeNotifierProvider(create: (context) => ThemeNotifier()),
         ],
-        child: const AppContent(),
+        child: AppContent(title: title),
       );
 }
 
 class AppContent extends StatelessWidget {
-  const AppContent({super.key});
+  final String title;
+
+  const AppContent({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
     final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
-      title: 'project_xmedit',
+      title: title,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: themeNotifier.seedColor,

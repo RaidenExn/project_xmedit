@@ -25,7 +25,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
 
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const MyApp(title: 'project_xmedit Test'));
 
     // Verify that the app builds.
     expect(find.byType(MaterialApp), findsOneWidget);
