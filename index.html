@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
     <div class="noise-overlay"></div>
@@ -21,14 +23,18 @@
             <div class="nav-buttons">
                 <a href="https://github.com/RaidenExn/project_xmedit" target="_blank" class="nav-link">
                     <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+                        </path>
                     </svg>
                     GitHub
                 </a>
                 <button id="theme-toggle" title="Toggle theme" class="icon-btn">
                     <svg class="icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="5"></circle>
-                        <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+                        <path
+                            d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42">
+                        </path>
                     </svg>
                     <svg class="icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -41,36 +47,47 @@
     <main>
         <section class="hero animate-entry delay-1">
             <div class="container">
-                <div class="hero-badge">v3.0 Available</div>
+                <div class="hero-badge">v5.0.1 Available</div>
                 <h1 class="gradient-text">Modern XML editor for<br>Insurance Resubmission</h1>
-                <p class="subtitle">Built to make DHPO claim corrections faster, smarter, and visually intuitive. Stop wrestling with raw files.</p>
-                
+                <p class="subtitle">Built to make DHPO claim corrections faster, smarter, and visually intuitive. Stop
+                    wrestling with raw files.</p>
+
                 <div class="cta-group">
                     <a href="https://github.com/RaidenExn/project_xmedit/releases/latest" class="button primary">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                         </svg>
                         Download
                     </a>
-                    <a href="#features" class="button secondary">Features</a>
+                    <a href="web_app/" class="button secondary">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path
+                                d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        Open Web App
+                    </a>
                 </div>
             </div>
         </section>
 
         <section id="features" class="container section-pad features animate-entry delay-2">
             <h2 class="section-title">Designed for Efficiency</h2>
-            
+
             <div class="bento-grid" id="cards-container">
                 <div class="card span-2 feature-main style-blue">
                     <div class="card-glow"></div>
                     <div class="card-content">
                         <div class="icon-box">
-                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                         </div>
                         <h3>Comprehensive Editing</h3>
-                        <p>Modify claim details, totals, activities, and resubmission data with a user-friendly interface that feels native.</p>
+                        <p>Modify claim details, totals, activities, and resubmission data with a user-friendly
+                            interface that feels native.</p>
                     </div>
                 </div>
 
@@ -78,8 +95,10 @@
                     <div class="card-glow"></div>
                     <div class="card-content">
                         <div class="icon-box">
-                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                             </svg>
                         </div>
                         <h3>Custom UI</h3>
@@ -91,8 +110,10 @@
                     <div class="card-glow"></div>
                     <div class="card-content">
                         <div class="icon-box">
-                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                         </div>
                         <h3>Diagnosis Mgmt</h3>
@@ -104,8 +125,10 @@
                     <div class="card-glow"></div>
                     <div class="card-content">
                         <div class="icon-box">
-                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
                         </div>
                         <h3>Attachments</h3>
@@ -117,7 +140,8 @@
                     <div class="card-glow"></div>
                     <div class="card-content">
                         <div class="icon-box">
-                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                         </div>
@@ -133,7 +157,8 @@
             <div class="macbook-container">
                 <div class="macbook-screen">
                     <div class="camera-island"></div>
-                    <img src="assets/ss_light.png" alt="Project XMEdit Screenshot" class="screenshot-img" id="screenshot-img">
+                    <img src="assets/ss_light.png" alt="Project XMEdit Screenshot" class="screenshot-img"
+                        id="screenshot-img">
                 </div>
                 <div class="macbook-base"></div>
             </div>
@@ -142,17 +167,18 @@
         <section class="container section-pad installation animate-entry delay-3">
             <h2 class="section-title">Get Started</h2>
             <div class="install-grid">
-                 <div class="card install-card style-blue">
+                <div class="card install-card style-blue">
                     <div class="card-glow"></div>
                     <div class="card-content">
                         <h3>1. Install Runtime</h3>
                         <p>Requires Microsoft Visual C++ Redistributable (X64).</p>
-                        <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version" target="_blank" class="link-arrow">
+                        <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#latest-supported-redistributable-version"
+                            target="_blank" class="link-arrow">
                             Find VC++ Redistributable <span>→</span>
                         </a>
                     </div>
                 </div>
-                 <div class="card install-card style-blue">
+                <div class="card install-card style-blue">
                     <div class="card-glow"></div>
                     <div class="card-content">
                         <h3>2. Unzip and Run</h3>
@@ -176,4 +202,5 @@
 
     <script src="script.js"></script>
 </body>
+
 </html>
