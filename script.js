@@ -1,13 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Fetch and display version
+    fetch('version.json')
+        .then(response => response.json())
+        .then(data => {
+            const versionBadge = document.getElementById('version-badge');
+            if (versionBadge && data.version) {
+                versionBadge.textContent = `v${data.version} Available`;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading version:', error);
+            const versionBadge = document.getElementById('version-badge');
+            if (versionBadge) {
+                versionBadge.textContent = 'Latest Version Available';
+            }
+        });
+
     const themeToggleButton = document.getElementById('theme-toggle');
     const screenshotImg = document.getElementById('screenshot-img');
     const sunIcon = document.querySelector('.sun-icon');
     const moonIcon = document.querySelector('.moon-icon');
-    
+
     // Check localStorage or System Preference
     const savedTheme = localStorage.getItem('theme');
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
+
     function applyTheme(isDark) {
         if (isDark) {
             document.body.classList.add('dark-mode');
@@ -33,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!screenshotImg) return;
         screenshotImg.style.opacity = '0.6';
         const newSrc = theme === 'dark-mode' ? 'assets/ss_dark.png' : 'assets/ss_light.png';
-        
+
         // Preload image to prevent flickering
         const imgLoader = new Image();
         imgLoader.src = newSrc;
@@ -65,16 +82,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- High Performance Spotlight Effect ---
     const cardsContainer = document.getElementById('cards-container');
     const installGrid = document.querySelector('.install-grid');
-    
+
     function updateSpotlight(e, container) {
-        if(!container) return;
+        if (!container) return;
         const cards = container.getElementsByClassName("card");
-        
-        for(const card of cards) {
+
+        for (const card of cards) {
             const rect = card.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
+
             // Updates CSS variables that control the glow position
             card.style.setProperty("--mouse-x", `${x}px`);
             card.style.setProperty("--mouse-y", `${y}px`);
