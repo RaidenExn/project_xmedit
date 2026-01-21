@@ -170,9 +170,9 @@ class BulkClaimDataNotifier extends ChangeNotifier {
         // Reset selection
         _selectedClaimIndices.clear();
         _lastSelectedClaimIndex = 0;
-        if (_bulkData!.claims.isNotEmpty) {
-          _selectedClaimIndices.add(0);
-        }
+        _selectedClaimIndices.clear();
+        _lastSelectedClaimIndex = 0;
+        // removed auto-selection of first claim
 
         onMessage?.call(
             'Bulk XML loaded successfully! ${_bulkData!.totalClaims} claims found.',
@@ -224,9 +224,9 @@ class BulkClaimDataNotifier extends ChangeNotifier {
       // Reset selection
       _selectedClaimIndices.clear();
       _lastSelectedClaimIndex = 0;
-      if (_bulkData!.claims.isNotEmpty) {
-        _selectedClaimIndices.add(0);
-      }
+      _selectedClaimIndices.clear();
+      _lastSelectedClaimIndex = 0;
+      // removed auto-selection of first claim
 
       onMessage?.call(
           'Bulk XML loaded successfully! ${_bulkData!.totalClaims} claims found.',
@@ -264,6 +264,15 @@ class BulkClaimDataNotifier extends ChangeNotifier {
     }
     _selectedClaimIndices.clear();
     _selectedClaimIndices.add(index);
+    _lastSelectedClaimIndex = index;
+    notifyListeners();
+  }
+
+  /// Focus a claim without selecting via checkbox (for viewing details)
+  void focusClaim(int index) {
+    if (_bulkData == null || index < 0 || index >= _bulkData!.claims.length) {
+      return;
+    }
     _lastSelectedClaimIndex = index;
     notifyListeners();
   }
@@ -326,10 +335,10 @@ class BulkClaimDataNotifier extends ChangeNotifier {
     _selectedClaimIndices.clear();
     _lastSelectedClaimIndex = 0;
 
-    // Auto-select first if available
-    if (_bulkData!.claims.isNotEmpty) {
-      _selectedClaimIndices.add(0);
-    }
+    // Auto-select first if available - DISABLED
+    // if (_bulkData!.claims.isNotEmpty) {
+    //   _selectedClaimIndices.add(0);
+    // }
 
     notifyListeners();
     onMessage?.call('$count claim(s) deleted.', false);
@@ -413,9 +422,8 @@ class BulkClaimDataNotifier extends ChangeNotifier {
     _undoStack.clear();
     _selectedClaimIndices.clear();
     _lastSelectedClaimIndex = 0;
-    if (_bulkData!.claims.isNotEmpty) {
-      _selectedClaimIndices.add(0);
-    }
+    _lastSelectedClaimIndex = 0;
+    // removed auto-selection of first claim
 
     notifyListeners();
     onMessage?.call('Reset to original state.', false);

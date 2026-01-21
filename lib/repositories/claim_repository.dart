@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:project_xmedit/models/claim_models.dart';
 import 'package:project_xmedit/services/xml_service.dart';
+import 'package:project_xmedit/services/logger.dart';
 import 'package:project_xmedit/utils/attachment_helper.dart';
 import 'package:universal_io/io.dart';
 // ignore: avoid_web_libraries_in_flutter
@@ -36,7 +37,8 @@ class ClaimRepository {
 
         return FilePickResult(xmlString: xmlString, filePath: filePath);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('Error picking XML file', e, stackTrace);
       rethrow;
     }
     return null;

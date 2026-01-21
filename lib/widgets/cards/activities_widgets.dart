@@ -19,24 +19,13 @@ const Map<String, int> _activityColumnFlex = {
   'actions': 1,
 };
 
-class ActivitiesCard extends StatelessWidget {
-  const ActivitiesCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // This widget is likely to be replaced by the Sliver implementation in BodyContent
-    // But we keep it for now or for empty state handling.
-    return const SizedBox.shrink();
-  }
-}
-
 class ActivityTableHeader extends StatelessWidget {
   final String title;
   const ActivityTableHeader({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.bodySmall;
+    final style = Theme.of(context).textTheme.titleSmall;
     return CustomTableHeader(
       children: [
         Expanded(

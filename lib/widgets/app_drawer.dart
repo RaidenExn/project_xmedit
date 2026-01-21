@@ -45,155 +45,214 @@ class _AppDrawerState extends State<AppDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    final cardNotifier = context.watch<CardVisibilityNotifier>();
     final themeNotifier = context.watch<ThemeNotifier>();
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Drawer(
-      child: ListView(
-        padding: const EdgeInsets.all(8.0),
+      backgroundColor: colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+            topRight: Radius.circular(16), bottomRight: Radius.circular(16)),
+      ),
+      child: Column(
         children: [
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Drawer Header / Title
+          Container(
+            padding: const EdgeInsets.fromLTRB(24, 56, 24, 16),
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Settings',
+              style: textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               children: [
-                const ListTile(
-                  title: Text('Appearance'),
-                  leading: Icon(Icons.palette_outlined),
-                  dense: true,
-                ),
-                SwitchListTile(
-                  title: const Text('Dark Mode'),
-                  value: themeNotifier.isDarkMode,
-                  onChanged: (value) => themeNotifier.toggleTheme(),
-                  visualDensity: VisualDensity.compact,
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                  child: Text(
-                    'Theme Color',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: themeNotifier.availableColors.map((color) {
-                      final bool isSelected = themeNotifier.seedColor == color;
-                      final brightness =
-                          ThemeData.estimateBrightnessForColor(color);
-                      final iconColor = brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black;
-                      const double size = 32;
+                // Section: Appearance
+                _buildSectionHeader(context, 'Appearance'),
+                const SizedBox(height: 16),
 
-                      return InkWell(
-                        onTap: () => themeNotifier.changeSeedColor(color),
-                        borderRadius: BorderRadius.circular(size / 2),
-                        child: Container(
-                          width: size,
-                          height: size,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: isSelected
-                                ? Border.all(
-                                    color:
-                                        Theme.of(context).colorScheme.onSurface,
-                                    width: 3,
-                                  )
-                                : null,
+                // Theme Mode Selector
+                _buildThemeModeSelector(context, themeNotifier),
+                const SizedBox(height: 24),
+
+                // Color Theme Selector
+                Text(
+                  'Theme Color',
+                  style: textTheme.labelLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildColorSelector(context, themeNotifier),
+
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Divider(),
+                ),
+
+                // Section: About
+                _buildSectionHeader(context, 'About'),
+                const SizedBox(height: 16),
+
+                // App Info
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(Icons.edit_document,
+                                size: 24,
+                                color: colorScheme.onPrimaryContainer),
                           ),
-                          child: isSelected
-                              ? Icon(Icons.check, color: iconColor, size: 18)
-                              : null,
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _appName,
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'v$_version',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'This application is designed for editing specific XML claim files.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                      );
-                    }).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Developed by Abhijith S S',
+                        style: textTheme.labelMedium?.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Links
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () => _launchURL(
+                              'https://raidenexn.github.io/project_xmedit/'),
+                          icon: const Icon(Icons.public, size: 18),
+                          label: const Text('Visit Website'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                const ListTile(
-                  title: Text('Visible Cards'),
-                  leading: Icon(Icons.view_quilt_outlined),
-                  dense: true,
-                ),
-                ...cardNotifier.visibilities.entries.map((entry) {
-                  final key = entry.key;
-                  String title = key[0].toUpperCase() + key.substring(1);
-                  if (key == 'resubmission & totals') {
-                    title = 'Resubmission & Totals';
-                  } else if (key == 'activities') {
-                    title = 'Activities List';
-                  } else if (key == 'details') {
-                    title = 'Claim Details';
-                  }
-                  return SwitchListTile(
-                    title: Text(title),
-                    value: entry.value,
-                    onChanged: (value) => cardNotifier.toggle(key),
-                    visualDensity: VisualDensity.compact,
-                  );
-                }),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AboutListTile(
-                  icon: const Icon(Icons.info_outline),
-                  applicationIcon: const Icon(Icons.edit_document),
-                  applicationName: _appName,
-                  applicationVersion: _version,
-                  applicationLegalese: '© 2025 Abhijith SS',
-                  aboutBoxChildren: [
-                    const SizedBox(height: 16),
-                    Text(
-                      'This application is designed for editing specific XML claim files.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      icon: const Icon(Icons.bug_report_outlined),
-                      label: const Text('Report an Issue'),
-                      onPressed: () => _launchURL(
-                          'https://github.com/RaidenExn/project_xmedit/issues'),
-                    ),
-                  ],
-                  dense: true,
-                  child: const Text('About this app'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.code),
-                  title: const Text('Developed by'),
-                  subtitle: const Text('Abhijith SS'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.open_in_new),
-                    onPressed: () => _launchURL(
-                        'https://raidenexn.github.io/project_xmedit/'),
-                  ),
-                  dense: true,
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+    );
+  }
+
+  Widget _buildThemeModeSelector(BuildContext context, ThemeNotifier notifier) {
+    return SegmentedButton<ThemeMode>(
+      showSelectedIcon: false,
+      segments: const [
+        ButtonSegment(
+          value: ThemeMode.system,
+          label: Text('System'),
+        ),
+        ButtonSegment(
+          value: ThemeMode.light,
+          label: Text('Light'),
+        ),
+        ButtonSegment(
+          value: ThemeMode.dark,
+          label: Text('Dark'),
+        ),
+      ],
+      selected: {notifier.themeMode},
+      onSelectionChanged: (Set<ThemeMode> newSelection) {
+        notifier.setThemeMode(newSelection.first);
+      },
+    );
+  }
+
+  Widget _buildColorSelector(BuildContext context, ThemeNotifier notifier) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: notifier.availableColors.map((color) {
+          final isSelected = notifier.seedColor == color;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              onTap: () => notifier.changeSeedColor(color),
+              borderRadius: BorderRadius.circular(18),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: isSelected
+                      ? Border.all(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          width: 2,
+                        )
+                      : null,
+                  boxShadow: [
+                    if (isSelected)
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      )
+                  ],
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : null,
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

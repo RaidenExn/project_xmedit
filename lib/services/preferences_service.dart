@@ -84,4 +84,31 @@ class PreferencesService {
       return null;
     }
   }
+
+  static const String _themeModeKey = 'theme_mode';
+  static const String _seedColorKey = 'seed_color';
+
+  /// Get saved theme mode
+  static Future<String> getThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_themeModeKey) ?? 'system';
+  }
+
+  /// Save theme mode
+  static Future<void> setThemeMode(String mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeModeKey, mode);
+  }
+
+  /// Get saved seed color value (int)
+  static Future<int?> getSeedColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_seedColorKey);
+  }
+
+  /// Save seed color value (int)
+  static Future<void> setSeedColor(int colorValue) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_seedColorKey, colorValue);
+  }
 }

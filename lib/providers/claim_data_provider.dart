@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -28,7 +29,7 @@ class ClaimDataNotifier extends ChangeNotifier {
   void Function(String xmlString, String? filePath)? onBulkXmlDetected;
 
   bool shouldRenameFile = true;
-  String? originalResubmissionType;
+
   String grossDifference = "";
   String netDifference = "";
   Map<String, String> _cptDescriptions = {};
@@ -38,7 +39,11 @@ class ClaimDataNotifier extends ChangeNotifier {
   ValidationResult? _validationResult;
 
   ClaimDataNotifier() {
-    _dbHelper.database;
+    _initDatabase();
+  }
+
+  Future<void> _initDatabase() async {
+    await _dbHelper.database;
   }
 
   Map<String, String> get cptDescriptions => _cptDescriptions;
@@ -96,7 +101,11 @@ class ClaimDataNotifier extends ChangeNotifier {
   }
 
   void updateActivityCode(int index, String newCode) {
-    if (_claimData == null) return;
+    if (_claimData == null ||
+        index < 0 ||
+        index >= _claimData!.activities.length) {
+      return;
+    }
 
     final activity = _claimData!.activities[index];
     final originalActivity = _originalActivities[index];
@@ -187,7 +196,8 @@ class ClaimDataNotifier extends ChangeNotifier {
       }
     } on XmlParsingException catch (e) {
       onMessage?.call(e.message, true);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('Error loading XML file', e, stackTrace);
       onMessage?.call('An unexpected error occurred: $e', true);
     } finally {
       if (loadingStarted) {
@@ -210,6 +220,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       final claimData = await _repository.parseXml(xmlString);
 
       _claimData = claimData;
+      _originalXmlString = xmlString;
       _originalFilePath = filePath;
       // Store original activities for comparison
       _originalDiagnoses =
@@ -224,7 +235,6 @@ class ClaimDataNotifier extends ChangeNotifier {
 
       _originalPatientShare =
           double.tryParse(_claimData!.patientShare ?? '0') ?? 0.0;
-      originalResubmissionType = _claimData!.resubmission?.type;
 
       const resubmissionOptions = [
         "correction",
@@ -237,6 +247,7 @@ class ClaimDataNotifier extends ChangeNotifier {
             'internal complaint';
       }
 
+      _updateAttachmentSize();
       _checkAllBalances();
       _validate();
 
@@ -247,14 +258,26 @@ class ClaimDataNotifier extends ChangeNotifier {
       }
 
       onMessage?.call('XML file loaded successfully!', false);
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (e is XmlParsingException) {
         onMessage?.call(e.message, true);
       } else {
+        AppLogger.error('Error loading from XML string', e, stackTrace);
         onMessage?.call('An unexpected error occurred: $e', true);
       }
     } finally {
       _setLoading(false);
+    }
+  }
+
+  String? _originalXmlString;
+
+  bool get canReset => _originalXmlString != null;
+
+  Future<void> reset() async {
+    if (_originalXmlString != null) {
+      await loadFromXmlString(_originalXmlString!, _originalFilePath);
+      onMessage?.call('Reset to original file.', false);
     }
   }
 
@@ -314,7 +337,8 @@ class ClaimDataNotifier extends ChangeNotifier {
       } on UserCancelledException {
         onMessage?.call("Save operation cancelled.", false);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('Error saving XML file', e, stackTrace);
       onMessage?.call("Error saving file: $e", true);
     } finally {
       _setLoading(false);
@@ -332,6 +356,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     transferOnDelete = false;
     _cptDescriptions.clear();
     _validationResult = null;
+    _cachedAttachmentSize = null;
     notifyListeners();
     onMessage?.call('Data has been cleared.', false);
   }
@@ -443,11 +468,6 @@ class ClaimDataNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleRenameFile(bool? value) {
-    shouldRenameFile = value ?? false;
-    notifyListeners();
-  }
-
   void toggleTransferOnDelete(bool? value) {
     transferOnDelete = value ?? false;
     onMessage?.call(
@@ -529,8 +549,30 @@ class ClaimDataNotifier extends ChangeNotifier {
   void deleteResubmissionAttachment() {
     if (_claimData?.resubmission != null) {
       _claimData!.resubmission!.attachment = null;
+      _updateAttachmentSize();
       onMessage?.call('Attachment removed.', false);
       notifyListeners();
+    }
+  }
+
+  String? _cachedAttachmentSize;
+  String? get attachmentSizeInKb => _cachedAttachmentSize;
+  bool get isAttachmentInvalid => _isAttachmentInvalid;
+  bool _isAttachmentInvalid = false;
+
+  void _updateAttachmentSize() {
+    _cachedAttachmentSize = null;
+    _isAttachmentInvalid = false;
+    final attachment = _claimData?.resubmission?.attachment;
+    if (attachment != null && attachment.isNotEmpty) {
+      try {
+        final decodedBytes = base64Decode(attachment);
+        final sizeInKb = (decodedBytes.lengthInBytes / 1024).toStringAsFixed(2);
+        _cachedAttachmentSize = '$sizeInKb KB';
+      } on FormatException {
+        _cachedAttachmentSize = 'Corrupt';
+        _isAttachmentInvalid = true;
+      }
     }
   }
 
@@ -541,6 +583,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       if (base64String != null) {
         if (_claimData?.resubmission != null) {
           _claimData!.resubmission!.attachment = base64String;
+          _updateAttachmentSize();
           onMessage?.call('Attachment updated successfully.', false);
           notifyListeners();
         } else {
@@ -550,7 +593,8 @@ class ClaimDataNotifier extends ChangeNotifier {
       } else {
         onMessage?.call('File selection cancelled.', false);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.error('Error adding attachment', e, stackTrace);
       onMessage?.call('Error adding attachment: $e', true);
     }
   }

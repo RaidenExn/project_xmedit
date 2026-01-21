@@ -5,30 +5,41 @@ import 'package:project_xmedit/models/bulk_claim_models.dart';
 class BulkClaimListItemWidget extends StatelessWidget {
   final ClaimListItem claimListItem;
   final bool isSelected;
-  final VoidCallback onTap;
+  final bool isFocused;
+  final VoidCallback onFocus;
+  final VoidCallback onSelect;
   final VoidCallback onDelete;
 
   const BulkClaimListItemWidget({
     super.key,
     required this.claimListItem,
     required this.isSelected,
-    required this.onTap,
+    this.isFocused = false,
+    required this.onFocus,
+    required this.onSelect,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Highlight if selected OR focused (but different style maybe?)
+    // For now, let's keep selected as primary highlight.
+    // Maybe add a border for focused?
+
     final backgroundColor = isSelected
         ? theme.colorScheme.primaryContainer
-        : (claimListItem.index.isEven
-            ? theme.colorScheme.surface
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3));
+        : isFocused
+            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+            : (claimListItem.index.isEven
+                ? theme.colorScheme.surface
+                : theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.3));
 
     return Material(
       color: backgroundColor,
       child: InkWell(
-        onTap: onTap,
+        onTap: onFocus, // Click body to focus/view
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
@@ -37,13 +48,16 @@ class BulkClaimListItemWidget extends StatelessWidget {
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
                 width: 0.5,
               ),
+              left: isFocused
+                  ? BorderSide(color: theme.colorScheme.primary, width: 3)
+                  : BorderSide.none,
             ),
           ),
           child: Row(
             children: [
               // Selection checkbox / Index
               InkWell(
-                onTap: onTap, // Tap icon to select
+                onTap: onSelect, // Tap icon/number to toggle selection
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   width: 32,

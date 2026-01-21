@@ -44,27 +44,44 @@ class ValidationRules {
     return null;
   }
 
-  /// Validate date format (YYYY-MM-DD)
+  /// Validate date format (dd/MM/yyyy or dd/MM/yyyy HH:mm)
   static ValidationError? validateDate(String? dateStr, String fieldName) {
     if (dateStr == null || dateStr.trim().isEmpty) {
       return null; // Empty dates are allowed for optional fields
     }
 
-    // Check format YYYY-MM-DD
-    final datePattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+    final trimmedDate = dateStr.trim();
 
-    if (!datePattern.hasMatch(dateStr)) {
+    // Check format dd/MM/yyyy or dd/MM/yyyy HH:mm
+    final datePattern = RegExp(r'^\d{2}/\d{2}/\d{4}( \d{2}:\d{2})?$');
+
+    if (!datePattern.hasMatch(trimmedDate)) {
       return ValidationError(
         field: fieldName,
         message: 'Invalid date format',
         severity: ValidationSeverity.error,
-        suggestion: 'Use YYYY-MM-DD format (e.g., 2024-01-20)',
+        suggestion: 'Use DD/MM/YYYY HH:MM format (e.g., 20/01/2026 09:40)',
       );
     }
 
-    // Try to parse the date
+    // Try to parse the date manually since we don't have intl package
     try {
-      final date = DateTime.parse(dateStr);
+      final parts = trimmedDate.split(' ');
+      final dateParts = parts[0].split('/');
+      final day = int.parse(dateParts[0]);
+      final month = int.parse(dateParts[1]);
+      final year = int.parse(dateParts[2]);
+
+      int hour = 0;
+      int minute = 0;
+
+      if (parts.length > 1) {
+        final timeParts = parts[1].split(':');
+        hour = int.parse(timeParts[0]);
+        minute = int.parse(timeParts[1]);
+      }
+
+      final date = DateTime(year, month, day, hour, minute);
       final now = DateTime.now();
 
       // Warn if date is in the future
@@ -89,7 +106,7 @@ class ValidationRules {
     } catch (e) {
       return ValidationError(
         field: fieldName,
-        message: 'Invalid date',
+        message: 'Invalid date values',
         severity: ValidationSeverity.error,
         suggestion: 'Date must be a valid calendar date',
       );

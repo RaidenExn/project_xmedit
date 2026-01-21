@@ -25,13 +25,14 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        run: flutter build web --base-href "/project_xmedit/demo/" --release
+        run: flutter build web --base-href "/project_xmedit/web_app/" --release
 
       - name: Prepare Deployment Directory
         run: |
-          mkdir -p public/demo
-          cp -r build/web/* public/demo/
+          mkdir -p public/web_app
+          cp -r build/web/* public/web_app/
           cp index.html public/
+          cp style.css public/
           cp script.js public/
           cp -r assets public/
           touch public/.nojekyll

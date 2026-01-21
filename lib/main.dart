@@ -24,9 +24,8 @@ void main() async {
       size: Size(1200, 800),
       minimumSize: Size(1150, 700),
       center: true,
-      title: 'XMEdit',
-      titleBarStyle:
-          TitleBarStyle.hidden, // Use hidden title bar for unified look
+      title: 'project_xmedit',
+      titleBarStyle: TitleBarStyle.normal,
     );
 
     await windowManager.setPreventClose(true);
@@ -48,7 +47,6 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (context) => ClaimDataNotifier()),
           ChangeNotifierProvider(create: (context) => BulkClaimDataNotifier()),
           ChangeNotifierProvider(create: (context) => ThemeNotifier()),
-          ChangeNotifierProvider(create: (context) => CardVisibilityNotifier()),
         ],
         child: const AppContent(),
       );
@@ -61,13 +59,39 @@ class AppContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
-      title: 'XMEdit',
+      title: 'project_xmedit',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: themeNotifier.seedColor,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF5F7FA),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: themeNotifier.seedColor, width: 2),
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        tooltipTheme: TooltipThemeData(
+          waitDuration: const Duration(milliseconds: 500),
+          decoration: BoxDecoration(
+            color: const Color(0xFF313033),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          textStyle: const TextStyle(color: Color(0xFFF4EFF4), fontSize: 12),
+        ),
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -75,6 +99,32 @@ class AppContent extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF1A1C1E),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: themeNotifier.seedColor, width: 2),
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        tooltipTheme: TooltipThemeData(
+          waitDuration: const Duration(milliseconds: 500),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE6E1E5),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          textStyle: const TextStyle(color: Color(0xFF313033), fontSize: 12),
+        ),
       ),
       themeMode: themeNotifier.themeMode,
       debugShowCheckedModeBanner: false,

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
-import 'package:window_manager/window_manager.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:project_xmedit/models/validation_result.dart';
 import 'package:project_xmedit/widgets/validation_widgets.dart';
 
@@ -54,11 +53,11 @@ class ClaimDataSection extends StatelessWidget {
     final textStyles = Theme.of(context).textTheme;
 
     return Card(
-      elevation: 01,
+      elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-        side: BorderSide(color: colors.outlineVariant.withAlpha(128)),
+        borderRadius: BorderRadius.circular(12.0),
+        side: BorderSide(color: colors.outlineVariant),
       ),
       child: Column(
         mainAxisSize: canStretch ? MainAxisSize.max : MainAxisSize.min,
@@ -84,7 +83,7 @@ class ClaimDataSection extends StatelessWidget {
                     ],
                     Text(
                       title,
-                      style: textStyles.titleSmall,
+                      style: textStyles.titleMedium,
                     ),
                     if (titleSuffix != null) ...[
                       const SizedBox(width: 8),
@@ -147,25 +146,29 @@ class DataFieldWithCopy extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(label, style: theme.textTheme.bodySmall),
-                  if (validationError != null) ...[
-                    const SizedBox(width: 4),
-                    ValidationIndicator(error: validationError!, size: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(label, style: theme.textTheme.bodySmall),
+                    if (validationError != null) ...[
+                      const SizedBox(width: 4),
+                      ValidationIndicator(error: validationError!, size: 16),
+                    ],
                   ],
-                ],
-              ),
-              const SizedBox(height: 2.0),
-              Text(
-                value.isEmpty ? 'N/A' : value,
-                style: theme.textTheme.bodyLarge,
-              ),
-            ],
+                ),
+                const SizedBox(height: 2.0),
+                Text(
+                  value.isEmpty ? 'N/A' : value,
+                  style: theme.textTheme.bodyLarge,
+                  overflow: TextOverflow
+                      .ellipsis, // Optional: handle very long text gracefully
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 8.0),
           IconButton(
@@ -226,37 +229,12 @@ class SimpleDataField extends StatelessWidget {
   }
 }
 
-class WindowButtons extends StatelessWidget {
-  const WindowButtons({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (kIsWeb) return const SizedBox.shrink();
-
-    // On macOS, traffic lights are OS-owned and positioned by macOS
-    // No need to reserve space in Flutter AppBar
-    if (defaultTargetPlatform == TargetPlatform.macOS) {
-      return const SizedBox.shrink();
-    }
-
-    // On Windows, use WindowCaption for native window buttons
-    final theme = Theme.of(context);
-    return SizedBox(
-      width: 138,
-      height: 50,
-      child: WindowCaption(
-        brightness: theme.brightness,
-        backgroundColor: Colors.transparent,
-      ),
-    );
-  }
-}
-
 class HeaderActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
   final Color? color;
+  final String? tooltip;
 
   const HeaderActionButton({
     super.key,
@@ -264,16 +242,24 @@ class HeaderActionButton extends StatelessWidget {
     required this.label,
     this.onPressed,
     this.color,
+    this.tooltip,
   });
 
   @override
-  Widget build(BuildContext context) => TextButton.icon(
-        style: TextButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          foregroundColor: color,
-        ),
-        icon: Icon(icon, size: 16),
-        label: Text(label),
-        onPressed: onPressed,
-      );
+  Widget build(BuildContext context) {
+    final button = TextButton.icon(
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        foregroundColor: color,
+      ),
+      icon: Icon(icon, size: 16),
+      label: Text(label),
+      onPressed: onPressed,
+    );
+
+    if (tooltip != null) {
+      return Tooltip(message: tooltip!, child: button);
+    }
+    return button;
+  }
 }

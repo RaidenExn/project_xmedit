@@ -4,11 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/providers/bulk_claim_data_provider.dart';
-import 'package:project_xmedit/pages/bulk_editor_page.dart';
-import 'package:project_xmedit/widgets.dart';
 import 'package:project_xmedit/widgets/app_drawer.dart';
 import 'package:project_xmedit/widgets/body_content.dart';
 import 'package:provider/provider.dart';
+import 'package:project_xmedit/widgets/bulk_editor_view.dart';
+import 'package:project_xmedit/widgets/disposition_toggle.dart';
 import 'package:window_manager/window_manager.dart';
 
 class OpenIntent extends Intent {}
@@ -24,19 +24,12 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with WindowListener {
-  String _version = '';
-
+class _HomePageState extends State<HomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isFullScreen = false;
 
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) {
-      windowManager.addListener(this);
-      _checkFullScreen();
-    }
     _initPackageInfo();
 
     // Set up message handler for bulk notifier
@@ -70,47 +63,15 @@ class _HomePageState extends State<HomePage> with WindowListener {
     });
   }
 
-  Future<void> _checkFullScreen() async {
-    bool isFullScreen = await windowManager.isFullScreen();
-    if (mounted) {
-      setState(() {
-        _isFullScreen = isFullScreen;
-      });
-    }
-  }
-
-  @override
-  void onWindowEnterFullScreen() {
-    if (mounted) {
-      setState(() {
-        _isFullScreen = true;
-      });
-    }
-  }
-
-  @override
-  void onWindowLeaveFullScreen() {
-    if (mounted) {
-      setState(() {
-        _isFullScreen = false;
-      });
-    }
-  }
-
   Future<void> _initPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _version = info.version;
-      });
+    if (mounted && !kIsWeb) {
+      await windowManager.setTitle('project_xmedit ${info.version}');
     }
   }
 
   @override
   void dispose() {
-    if (!kIsWeb) {
-      windowManager.removeListener(this);
-    }
     super.dispose();
   }
 
@@ -149,15 +110,21 @@ class _HomePageState extends State<HomePage> with WindowListener {
     // Handle bulk XML detection
     notifier.onBulkXmlDetected = (xmlString, filePath) async {
       if (mounted) {
-        // Navigate to bulk editor page
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const BulkEditorPage(),
-          ),
-        );
-
-        // Load the bulk XML in the bulk notifier
+        // Load the bulk XML directly into the bulk notifier
+        // This will update the state and the UI will rebuild to show BulkEditorView
         await bulkNotifier.loadFromXmlString(xmlString, filePath);
+        // Clear single claim data to switch view
+        notifier.clearData();
+      }
+    };
+
+    // Handle single XML detection in bulk loader
+    bulkNotifier.onSingleXmlDetected = (xmlString, filePath) async {
+      if (mounted) {
+        // Load into single notifier
+        await notifier.loadFromXmlString(xmlString, filePath);
+        // Clear bulk data to switch view
+        bulkNotifier.clearData();
       }
     };
   }
@@ -211,7 +178,11 @@ class _HomePageState extends State<HomePage> with WindowListener {
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<ClaimDataNotifier>();
-    final bool isDataLoaded = notifier.claimData != null;
+    final bulkNotifier = context.watch<BulkClaimDataNotifier>();
+
+    final bool isSingleDataLoaded = notifier.claimData != null;
+    final bool isBulkDataLoaded = bulkNotifier.bulkData != null;
+    final bool isAnyDataLoaded = isSingleDataLoaded || isBulkDataLoaded;
 
     final bool isMac = defaultTargetPlatform == TargetPlatform.macOS;
 
@@ -221,12 +192,23 @@ class _HomePageState extends State<HomePage> with WindowListener {
           onInvoke: (intent) => notifier.loadXmlFile(),
         ),
         SaveIntent: CallbackAction<SaveIntent>(
-          onInvoke: (intent) =>
-              isDataLoaded ? notifier.saveXmlFile(saveAs: false) : null,
+          onInvoke: (intent) {
+            if (isBulkDataLoaded) {
+              bulkNotifier.saveBulkXmlFile(saveAs: false);
+            } else if (isSingleDataLoaded) {
+              notifier.saveXmlFile(saveAs: false);
+            }
+            return null;
+          },
         ),
-        SaveAsIntent: CallbackAction<SaveAsIntent>(
-          onInvoke: (intent) => isDataLoaded ? _handleSaveAs(notifier) : null,
-        ),
+        SaveAsIntent: CallbackAction<SaveAsIntent>(onInvoke: (intent) {
+          if (isBulkDataLoaded) {
+            bulkNotifier.saveBulkXmlFile(saveAs: true);
+          } else if (isSingleDataLoaded) {
+            _handleSaveAs(notifier);
+          }
+          return null;
+        }),
       },
       child: Shortcuts(
         shortcuts: <ShortcutActivator, Intent>{
@@ -242,23 +224,8 @@ class _HomePageState extends State<HomePage> with WindowListener {
           menus: [
             if (isMac)
               PlatformMenu(
-                label: 'XMEdit',
+                label: 'project_xmedit',
                 menus: [
-                  PlatformMenuItemGroup(
-                    members: [
-                      PlatformMenuItem(
-                        label: 'About XMEdit',
-                        onSelected: () {
-                          showAboutDialog(
-                            context: context,
-                            applicationName: 'XMEdit',
-                            applicationVersion: 'v$_version',
-                            applicationLegalese: 'Â© 2026 XMEdit Team',
-                          );
-                        },
-                      ),
-                    ],
-                  ),
                   const PlatformMenuItemGroup(members: [
                     PlatformProvidedMenuItem(
                         type: PlatformProvidedMenuItemType.quit),
@@ -274,7 +241,10 @@ class _HomePageState extends State<HomePage> with WindowListener {
                       label: 'Open...',
                       shortcut: const SingleActivator(LogicalKeyboardKey.keyO,
                           meta: true),
-                      onSelected: () => notifier.loadXmlFile(),
+                      onSelected: () {
+                        // Always use the single notifier's load, which detects bulk
+                        notifier.loadXmlFile();
+                      },
                     ),
                   ],
                 ),
@@ -284,16 +254,29 @@ class _HomePageState extends State<HomePage> with WindowListener {
                       label: 'Save',
                       shortcut: const SingleActivator(LogicalKeyboardKey.keyS,
                           meta: true),
-                      onSelected: isDataLoaded
-                          ? () => notifier.saveXmlFile(saveAs: false)
+                      onSelected: isAnyDataLoaded
+                          ? () {
+                              if (isBulkDataLoaded) {
+                                bulkNotifier.saveBulkXmlFile(saveAs: false);
+                              } else {
+                                notifier.saveXmlFile(saveAs: false);
+                              }
+                            }
                           : null,
                     ),
                     PlatformMenuItem(
                       label: 'Save As...',
                       shortcut: const SingleActivator(LogicalKeyboardKey.keyS,
                           meta: true, shift: true),
-                      onSelected:
-                          isDataLoaded ? () => _handleSaveAs(notifier) : null,
+                      onSelected: isAnyDataLoaded
+                          ? () {
+                              if (isBulkDataLoaded) {
+                                bulkNotifier.saveBulkXmlFile(saveAs: true);
+                              } else {
+                                _handleSaveAs(notifier);
+                              }
+                            }
+                          : null,
                     ),
                   ],
                 ),
@@ -309,7 +292,10 @@ class _HomePageState extends State<HomePage> with WindowListener {
                       shortcut: const SingleActivator(LogicalKeyboardKey.keyZ,
                           meta: true),
                       onSelected: () {
-                        // Implement undo if available or wire to existing logic
+                        if (isBulkDataLoaded && bulkNotifier.canUndo) {
+                          bulkNotifier.undo();
+                        }
+                        // Implement single undo if available
                       },
                     ),
                     PlatformMenuItem(
@@ -322,12 +308,15 @@ class _HomePageState extends State<HomePage> with WindowListener {
                     ),
                   ],
                 ),
-                if (isDataLoaded)
+                if (isAnyDataLoaded)
                   PlatformMenuItemGroup(
                     members: [
                       PlatformMenuItem(
                         label: 'Clear All',
-                        onSelected: () => notifier.clearData(),
+                        onSelected: () {
+                          notifier.clearData();
+                          bulkNotifier.clearData();
+                        },
                       ),
                     ],
                   ),
@@ -374,40 +363,146 @@ class _HomePageState extends State<HomePage> with WindowListener {
               backgroundColor: Theme.of(context).colorScheme.surface,
               elevation: 0,
               automaticallyImplyLeading:
-                  kIsWeb, // Hide native hamburger on desktop
-              titleSpacing:
-                  0, // Remove default spacing to control padding manually
-              title: Row(
-                children: [
-                  if (isMac && !kIsWeb && !_isFullScreen)
-                    const SizedBox(width: 80), // Traffic lights spacer
-
-                  // Custom Hamburger Menu
-                  IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                    tooltip: 'Open Menu',
-                  ),
-
-                  // Drag area fills the rest
-                  Expanded(
-                    child: DragToMoveArea(
-                      child: Container(
-                        color: Colors.transparent,
-                        height: 56,
-                        alignment: Alignment.centerLeft,
-                        child: const SizedBox.shrink(), // Or title text
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  true, // Use standard leading widget (Hamburger)
+              titleSpacing: NavigationToolbar.kMiddleSpacing,
+              title: isBulkDataLoaded
+                  ? Text('Bulk Claim Editor',
+                      style: Theme.of(context).textTheme.titleMedium)
+                  : null,
               actions: [
                 // ... (actions)
+
+                // Group: Edit Actions (Clear All, Undo, Reset)
+                if (isAnyDataLoaded) ...[
+                  IconButton(
+                    icon: const Icon(Icons.clear_all),
+                    tooltip: "Clear All",
+                    onPressed: () {
+                      notifier.clearData();
+                      bulkNotifier.clearData();
+                    },
+                  ),
+                  const SizedBox(width: 4),
+
+                  // Undo (Bulk and Single)
+                  Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.undo),
+                        tooltip: "Undo",
+                        onPressed: isBulkDataLoaded
+                            ? (bulkNotifier.canUndo ? bulkNotifier.undo : null)
+                            : null, // Single undo not implemented yet
+                      ),
+                      if (isBulkDataLoaded && bulkNotifier.canUndo)
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: IgnorePointer(
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                '${bulkNotifier.undoStack.length}',
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.onPrimary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 4),
+
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    tooltip: "Reset",
+                    onPressed: isBulkDataLoaded
+                        ? (bulkNotifier.canReset ? bulkNotifier.reset : null)
+                        : (notifier.canReset ? notifier.reset : null),
+                  ),
+                  const VerticalDivider(indent: 12, endIndent: 12),
+
+                  // Group: Disposition
+                  DispositionToggle(
+                    value: isBulkDataLoaded
+                        ? bulkNotifier.dispositionFlag
+                        : notifier.dispositionFlag,
+                    onChanged: isBulkDataLoaded
+                        ? bulkNotifier.setDispositionFlag
+                        : notifier.setDispositionFlag,
+                  ),
+                  const VerticalDivider(indent: 12, endIndent: 12),
+
+                  // Group: File Ops (Split, Save As, Apply)
+                  if (isBulkDataLoaded) ...[
+                    FilledButton.tonal(
+                      onPressed: bulkNotifier.splitAndSaveBulkXml,
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      child: const Text("Split"),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
+                  FilledButton.tonal(
+                    onPressed: () {
+                      if (isBulkDataLoaded) {
+                        bulkNotifier.saveBulkXmlFile(saveAs: true);
+                      } else {
+                        _handleSaveAs(notifier);
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const Text("Save As"),
+                  ),
+                  const SizedBox(width: 8),
+
+                  FilledButton.icon(
+                    icon: const Icon(Icons.save_outlined),
+                    label: Text(isBulkDataLoaded
+                        ? "Apply"
+                        : "Apply"), // Using Apply for both as per user request flow, or keep consistent with Save icon
+                    onPressed: () {
+                      if (isBulkDataLoaded) {
+                        bulkNotifier.saveBulkXmlFile(saveAs: false);
+                      } else {
+                        notifier.saveXmlFile(saveAs: false);
+                      }
+                    },
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                  const VerticalDivider(indent: 12, endIndent: 12),
+                ],
+
+                // Open Button (Always Last)
                 FilledButton.icon(
                   icon: const Icon(Icons.folder_open_outlined),
                   label: const Text("Open"),
-                  onPressed: notifier.loadXmlFile,
+                  onPressed: () {
+                    if (isBulkDataLoaded) {
+                      bulkNotifier.loadBulkXmlFile();
+                    } else {
+                      notifier.loadXmlFile();
+                    }
+                  },
                   style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     backgroundColor:
@@ -416,70 +511,26 @@ class _HomePageState extends State<HomePage> with WindowListener {
                         Theme.of(context).colorScheme.onSecondaryContainer,
                   ),
                 ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  icon: const Icon(Icons.clear_all),
-                  label: const Text("Clear All"),
-                  onPressed: isDataLoaded ? notifier.clearData : null,
-                ),
-                const VerticalDivider(indent: 12, endIndent: 12),
-                if (isDataLoaded) ...[
-                  Row(
-                    children: [
-                      const Text('PROD',
-                          style: TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.bold)),
-                      Transform.scale(
-                        scale: 0.8,
-                        child: Switch(
-                          value: notifier.dispositionFlag == 'TEST',
-                          onChanged: (val) => notifier
-                              .setDispositionFlag(val ? 'TEST' : 'PRODUCTION'),
-                          activeTrackColor:
-                              Colors.orange.withValues(alpha: 0.5),
-                          activeThumbColor: Colors.orange,
-                        ),
-                      ),
-                      const Text('TEST',
-                          style: TextStyle(
-                              fontSize: 10, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                  const VerticalDivider(indent: 12, endIndent: 12),
-                ],
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: FilterChip(
-                    label: const Text('Rename on Apply'),
-                    selected: notifier.shouldRenameFile,
-                    onSelected: isDataLoaded ? notifier.toggleRenameFile : null,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  icon: const Icon(Icons.save_outlined),
-                  label: const Text("Apply"),
-                  onPressed: isDataLoaded
-                      ? () => notifier.saveXmlFile(saveAs: false)
-                      : null,
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed:
-                      isDataLoaded ? () => _handleSaveAs(notifier) : null,
-                  child: const Text("Save As..."),
-                ),
-                const SizedBox(width: 8),
-                if (!kIsWeb && !isMac) const WindowButtons(),
+
                 const SizedBox(width: 4.0),
               ],
             ),
             drawer: const AppDrawer(),
-            body: const BodyContent(),
+            // SWITCH BODY BASED ON MODE
+            body: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              child: isBulkDataLoaded
+                  ? (bulkNotifier.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : const BulkEditorView())
+                  : const BodyContent(),
+            ),
           ),
         ),
       ),

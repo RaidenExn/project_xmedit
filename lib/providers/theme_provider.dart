@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:project_xmedit/services/preferences_service.dart';
 
 class ThemeNotifier extends ChangeNotifier {
-  late SharedPreferences _prefs;
   ThemeMode _themeMode = ThemeMode.system;
   Color _seedColor = Colors.green;
 
@@ -38,6 +37,12 @@ class ThemeNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setThemeMode(ThemeMode mode) {
+    _themeMode = mode;
+    _savePreferences();
+    notifyListeners();
+  }
+
   void changeSeedColor(Color color) {
     _seedColor = color;
     _savePreferences();
@@ -45,14 +50,38 @@ class ThemeNotifier extends ChangeNotifier {
   }
 
   Future<void> _loadPreferences() async {
-    _prefs = await SharedPreferences.getInstance();
-    final int? colorValue = _prefs.getInt('themeColor');
+    final modeStr = await PreferencesService.getThemeMode();
+    switch (modeStr) {
+      case 'light':
+        _themeMode = ThemeMode.light;
+        break;
+      case 'dark':
+        _themeMode = ThemeMode.dark;
+        break;
+      default:
+        _themeMode = ThemeMode.system;
+    }
+
+    final int? colorValue = await PreferencesService.getSeedColor();
     if (colorValue != null) {
       _seedColor = Color(colorValue);
     }
+    notifyListeners();
   }
 
   Future<void> _savePreferences() async {
-    await _prefs.setInt('themeColor', _seedColor.toARGB32());
+    String modeStr;
+    switch (_themeMode) {
+      case ThemeMode.light:
+        modeStr = 'light';
+        break;
+      case ThemeMode.dark:
+        modeStr = 'dark';
+        break;
+      default:
+        modeStr = 'system';
+    }
+    await PreferencesService.setThemeMode(modeStr);
+    await PreferencesService.setSeedColor(_seedColor.toARGB32());
   }
 }

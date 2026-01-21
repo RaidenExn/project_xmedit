@@ -16,7 +16,7 @@ class CustomTableHeader extends StatelessWidget {
       );
 }
 
-class CustomDataRow extends StatelessWidget {
+class CustomDataRow extends StatefulWidget {
   final List<Widget> children;
   final bool isZebra;
   final bool isDeleted;
@@ -31,18 +31,43 @@ class CustomDataRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
+  State<CustomDataRow> createState() => _CustomDataRowState();
+}
+
+class _CustomDataRowState extends State<CustomDataRow> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = getRowColor(
+      context: context,
+      isZebra: widget.isZebra,
+      isDeleted: widget.isDeleted,
+      isHighlighted: widget.isHighlighted,
+    );
+
+    // If hovered, overlay a subtle primary tint or darken/lighten slightly
+    final hoverColor = Theme.of(context)
+        .colorScheme
+        .onSurface
+        .withValues(alpha: 0.05); // Subtle hover overlay
+
+    final effectiveColor = _isHovered
+        ? Color.alphaBlend(hoverColor, baseColor ?? Colors.transparent)
+        : baseColor;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Container(
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        color: getRowColor(
-          context: context,
-          isZebra: isZebra,
-          isDeleted: isDeleted,
-          isHighlighted: isHighlighted,
-        ),
+        color: effectiveColor,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: children,
+          children: widget.children,
         ),
-      );
+      ),
+    );
+  }
 }
