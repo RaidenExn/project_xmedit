@@ -1,0 +1,34 @@
+{
+  "generated_from": {
+    "raw_dir": "raw_data",
+    "xml_examples_dir": "raw_data/xml_input_examples"
+  },
+  "cleanup_rules": {
+    "dsl": "Removed inactive rows using activeTo < today",
+    "drug": "Kept only STATUS starting with Active",
+    "clinicians": "Kept only active status and deduplicated by clinician_id",
+    "columns": "Dropped date/version/price/source and other non-lookup columns"
+  },
+  "counts": {
+    "service_codes": 14917,
+    "service_codes_by_type": {
+      "CPT": 10679,
+      "CDT": 691,
+      "DSL": 200,
+      "DRUG": 3347
+    },
+    "icd10_codes": 72621,
+    "payers": 101,
+    "specialties": 474,
+    "clinicians": 226641
+  },
+  "artifacts": {
+    "sqlite_seed_gz": "assets/db_seed/reference_seed.sqlite.gz"
+  },
+  "crossmatch": {
+    "service_missing_total": 0,
+    "icd_missing_total": 0,
+    "payer_missing_total": 0,
+    "clinician_missing_total": 0
+  }
+}
