@@ -23,33 +23,48 @@ class FinancialInputField extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasDiff = difference != null && difference!.isNotEmpty;
     final theme = Theme.of(context);
+    final borderColor = hasDiff
+        ? theme.colorScheme.error
+        : theme.colorScheme.outlineVariant.withAlpha(150);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-            width: 90, child: Text(label, style: theme.textTheme.titleSmall)),
+          width: 94,
+          child: Text(label, style: theme.textTheme.titleSmall),
+        ),
         Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withAlpha((255 * 0.5).round()),
-              borderRadius: BorderRadius.circular(8.0),
-              border: hasDiff
-                  ? Border.all(color: theme.colorScheme.error, width: 1.5)
-                  : null,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: SizedBox(
+            height: 36,
             child: TextFormField(
               controller: controller,
               onChanged: (_) => onChanged(),
               textAlign: TextAlign.right,
-              style: theme.textTheme.bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 6),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              decoration: InputDecoration(
                 isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerLow,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: borderColor,
+                    width: hasDiff ? 1.2 : 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: theme.colorScheme.primary),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: theme.colorScheme.error),
+                ),
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -62,8 +77,14 @@ class FinancialInputField extends StatelessWidget {
         if (hasDiff)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6.0),
-            child: Text(difference!,
-                style: TextStyle(color: theme.colorScheme.error, fontSize: 12)),
+            child: Text(
+              difference!,
+              style: TextStyle(
+                color: theme.colorScheme.error,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         if (validationError != null)
           Padding(
@@ -71,7 +92,8 @@ class FinancialInputField extends StatelessWidget {
             child: ValidationIndicator(error: validationError!, size: 16),
           ),
         IconButton(
-          icon: const Icon(Icons.copy, size: 16),
+          icon: const Icon(Icons.copy_rounded, size: 16),
+          tooltip: 'Copy value',
           onPressed: () {
             Clipboard.setData(ClipboardData(text: controller.text));
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -80,6 +102,7 @@ class FinancialInputField extends StatelessWidget {
                 behavior: SnackBarBehavior.floating));
           },
           splashRadius: 18,
+          visualDensity: VisualDensity.compact,
         ),
       ],
     );

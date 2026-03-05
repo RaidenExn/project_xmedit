@@ -1,13 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:project_xmedit/database_helper.dart';
+import 'package:project_xmedit/models/claim_models.dart';
 import 'package:project_xmedit/notifiers.dart';
+import 'package:project_xmedit/repositories/reference_data_repository.dart';
 
 import 'package:project_xmedit/models/validation_result.dart';
 import 'package:project_xmedit/widgets/validation_widgets.dart';
 import 'package:provider/provider.dart';
 
-class ClaimDetailsCard extends StatelessWidget {
+class ClaimDetailsCard extends StatefulWidget {
   const ClaimDetailsCard({super.key});
+
+  @override
+  State<ClaimDetailsCard> createState() => _ClaimDetailsCardState();
+}
+
+class _ClaimDetailsCardState extends State<ClaimDetailsCard> {
+  final ReferenceDataRepository _referenceData = ReferenceDataRepository();
+  Future<_ClaimDetailsLookup>? _lookupFuture;
+  String _lookupKey = '';
+
+  String _resolveClinicianId(ClaimData claimData) {
+    final fromActivity = claimData.activities
+        .map((a) => (a.clinician ?? '').trim())
+        .firstWhere((id) => id.isNotEmpty, orElse: () => '');
+    if (fromActivity.isNotEmpty) return fromActivity;
+    return (claimData.providerID ?? '').trim();
+  }
+
+  void _ensureLookupFuture(ClaimData claimData) {
+    final clinicianId = _resolveClinicianId(claimData);
+    final payerId = (claimData.payerID ?? '').trim();
+    final receiverId = (claimData.receiverID ?? '').trim();
+    final key = '$clinicianId|$payerId|$receiverId';
+    if (_lookupFuture != null && key == _lookupKey) return;
+    _lookupKey = key;
+    _lookupFuture = _loadLookup(clinicianId, payerId, receiverId);
+  }
+
+  Future<_ClaimDetailsLookup> _loadLookup(
+    String clinicianId,
+    String payerId,
+    String receiverId,
+  ) async {
+    final payerNameFuture = _referenceData.getPayerName(payerId);
+    final receiverNameFuture = _referenceData.getPayerName(receiverId);
+    final clinicianFuture = clinicianId.isEmpty
+        ? Future.value(null)
+        : _referenceData.getClinicianProfile(clinicianId);
+
+    return _ClaimDetailsLookup(
+      payerName: await payerNameFuture,
+      receiverName: await receiverNameFuture,
+      clinicianProfile: await clinicianFuture,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,56 +64,107 @@ class ClaimDetailsCard extends StatelessWidget {
     final validationResult = notifier.validationResult;
 
     if (claimData == null) return const SizedBox.shrink();
+    _ensureLookupFuture(claimData);
+    final clinicianId = _resolveClinicianId(claimData);
 
-    return Column(
-      children: [
-        _DetailRow(
-          label: "Claim ID",
-          value: claimData.claimId,
-          validationError: validationResult?.getFirstErrorForField('claimId'),
-          canCopy: true,
-        ),
-        const Divider(height: 1),
-        _DetailRow(
-          label: "Member ID",
-          value: claimData.memberID,
-          validationError: validationResult?.getFirstErrorForField('memberID'),
-          canCopy: true,
-        ),
-        const Divider(height: 1),
-        _DetailRow(
-          label: "Sender ID",
-          value: claimData.senderID,
-          validationError: validationResult?.getFirstErrorForField('senderID'),
-        ),
-        const Divider(height: 1),
-        _DetailRow(
-          label: "Payer ID",
-          value: claimData.payerID,
-          validationError: validationResult?.getFirstErrorForField('payerID'),
-        ),
-        const Divider(height: 1),
-        _DetailRow(
-          label: "Receiver ID",
-          value: claimData.receiverID,
-          validationError:
-              validationResult?.getFirstErrorForField('receiverID'),
-        ),
-        const Divider(height: 1),
-        _DetailRow(
-          label: "Transaction Date",
-          value: claimData.transactionDate,
-        ),
-        const Divider(height: 1),
-        _DetailRow(
-          label: "Start Date",
-          value: claimData.start,
-          validationError:
-              validationResult?.getFirstErrorForField('encounterStart'),
-        ),
-      ],
+    return FutureBuilder<_ClaimDetailsLookup>(
+      future: _lookupFuture,
+      builder: (context, snapshot) {
+        final lookup = snapshot.data;
+        final clinicianProfile = lookup?.clinicianProfile;
+        return Column(
+          children: [
+            _DetailRow(
+              label: "Claim ID",
+              value: claimData.claimId,
+              validationError:
+                  validationResult?.getFirstErrorForField('claimId'),
+              canCopy: true,
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Member ID",
+              value: claimData.memberID,
+              validationError:
+                  validationResult?.getFirstErrorForField('memberID'),
+              canCopy: true,
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Sender ID",
+              value: claimData.senderID,
+              validationError:
+                  validationResult?.getFirstErrorForField('senderID'),
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Payer ID",
+              value: claimData.payerID,
+              validationError:
+                  validationResult?.getFirstErrorForField('payerID'),
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Payer Name",
+              value: lookup?.payerName,
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Receiver ID",
+              value: claimData.receiverID,
+              validationError:
+                  validationResult?.getFirstErrorForField('receiverID'),
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Receiver Name",
+              value: lookup?.receiverName,
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Transaction Date",
+              value: claimData.transactionDate,
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Start Date",
+              value: claimData.start,
+              validationError:
+                  validationResult?.getFirstErrorForField('encounterStart'),
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Doctor License",
+              value: clinicianId.isEmpty ? null : clinicianId,
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Doctor Name",
+              value: clinicianProfile?.professionalName,
+            ),
+            const Divider(height: 1),
+            _DetailRow(
+              label: "Specialty",
+              value: clinicianProfile?.specialtyDescription ??
+                  clinicianProfile?.specialtyId,
+            ),
+          ],
+        );
+      },
     );
   }
+}
+
+class _ClaimDetailsLookup {
+  final String? payerName;
+  final String? receiverName;
+  final ClinicianProfile? clinicianProfile;
+
+  const _ClaimDetailsLookup({
+    required this.payerName,
+    required this.receiverName,
+    required this.clinicianProfile,
+  });
 }
 
 class _DetailRow extends StatelessWidget {
@@ -89,6 +188,7 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 2,
@@ -112,6 +212,7 @@ class _DetailRow extends StatelessWidget {
             flex: 3,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
                   child: Text(
@@ -120,7 +221,8 @@ class _DetailRow extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
+                    maxLines: null,
                   ),
                 ),
                 if (canCopy) ...[

@@ -12,6 +12,12 @@ class ControlsResubmissionCard extends StatefulWidget {
 }
 
 class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
+  static const List<String> _resubmissionTypes = [
+    'correction',
+    'internal complaint',
+    'reconciliation',
+  ];
+
   late TextEditingController _commentController;
 
   @override
@@ -26,7 +32,6 @@ class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
     super.dispose();
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
     final notifier = context.watch<ClaimDataNotifier>();
@@ -53,16 +58,17 @@ class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildSelectionButton(
-                context, 'correction', selectedType, notifier),
-            const SizedBox(height: 8),
-            _buildSelectionButton(
-                context, 'internal complaint', selectedType, notifier),
-            const SizedBox(height: 8),
-            _buildSelectionButton(
-                context, 'reconciliation', selectedType, notifier),
-            const SizedBox(height: 12),
             _buildCommentField(theme, notifier),
+            const SizedBox(height: 12),
+            ..._resubmissionTypes.map((type) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildSelectionButton(
+                    context,
+                    type,
+                    selectedType,
+                    notifier,
+                  ),
+                )),
           ],
         );
       }
@@ -71,26 +77,27 @@ class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
+            flex: 6,
+            child: _buildCommentField(theme, notifier),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             flex: 4,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                _buildSelectionButton(
-                    context, 'correction', selectedType, notifier),
-                const SizedBox(height: 8),
-                _buildSelectionButton(
-                    context, 'internal complaint', selectedType, notifier),
-                const SizedBox(height: 8),
-                _buildSelectionButton(
-                    context, 'reconciliation', selectedType, notifier),
+                ..._resubmissionTypes.map((type) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildSelectionButton(
+                        context,
+                        type,
+                        selectedType,
+                        notifier,
+                      ),
+                    )),
               ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 6,
-            child: _buildCommentField(theme, notifier),
           ),
         ],
       );
@@ -109,9 +116,11 @@ class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
+            borderSide: BorderSide(
+                color: theme.colorScheme.outlineVariant.withAlpha(170)),
           ),
-          filled: false,
+          fillColor: theme.colorScheme.surfaceContainerLowest.withAlpha(220),
+          filled: true,
           contentPadding: const EdgeInsets.all(12),
           isDense: true,
         ),
@@ -139,19 +148,33 @@ class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
 
     return InkWell(
       onTap: () => notifier.updateResubmissionType(value),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isSelected
+                ? [
+                    theme.colorScheme.secondaryContainer,
+                    theme.colorScheme.primaryContainer.withAlpha(190),
+                  ]
+                : [
+                    theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
+                    theme.colorScheme.surfaceContainer.withValues(alpha: 0.2),
+                  ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           color: isSelected
-              ? theme.colorScheme.secondaryContainer
+              ? null
               : theme.colorScheme.surfaceContainerHighest
                   .withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? theme.colorScheme.secondaryContainer
+                ? theme.colorScheme.primary.withAlpha(170)
                 : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             width: isSelected ? 2 : 1,
           ),
@@ -161,9 +184,9 @@ class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
           label,
           style: theme.textTheme.labelMedium?.copyWith(
             color: isSelected
-                ? theme.colorScheme.onSecondaryContainer
+                ? theme.colorScheme.onPrimaryContainer
                 : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
           ),
           textAlign: TextAlign.center,
           maxLines: 1,

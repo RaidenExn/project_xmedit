@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Claim.Submission>
+  <Header>
+    <SenderID>DHA-F-0045572</SenderID>
+    <ReceiverID>TPA016</ReceiverID>
+    <TransactionDate>02/03/2026 08:40</TransactionDate>
+    <RecordCount>1</RecordCount>
+    <DispositionFlag>PRODUCTION</DispositionFlag>
+  </Header>
+  <Claim>
+    <ID>BJ/2025/ENC-71653</ID>
+    <IDPayer>UA250065554</IDPayer>
+    <MemberID>SPM0424</MemberID>
+    <PayerID>INS019</PayerID>
+    <ProviderID>DHA-F-0045572</ProviderID>
+    <Weight>88</Weight>
+    <EmiratesIDNumber>784-1981-7972154-7</EmiratesIDNumber>
+    <Gross>102.45</Gross>
+    <PatientShare>51</PatientShare>
+    <Net>51.45</Net>
+    <Encounter>
+      <FacilityID>DHA-F-0045572</FacilityID>
+      <Type>1</Type>
+      <PatientID>445950</PatientID>
+      <Start>15/12/2025 15:02</Start>
+      <End>15/12/2025 15:41</End>
+      <StartType>1</StartType>
+      <EndType>1</EndType>
+    </Encounter>
+    <Diagnosis>
+      <Type>Principal</Type>
+      <Code>J30.9</Code>
+    </Diagnosis>
+    <Diagnosis>
+      <Type>Secondary</Type>
+      <Code>R05</Code>
+    </Diagnosis>
+    <Diagnosis>
+      <Type>Secondary</Type>
+      <Code>J06.9</Code>
+    </Diagnosis>
+    <Diagnosis>
+      <Type>Secondary</Type>
+      <Code>R50.9</Code>
+    </Diagnosis>
+    <Diagnosis>
+      <Type>Secondary</Type>
+      <Code>R09.81</Code>
+    </Diagnosis>
+    <Diagnosis>
+      <Type>Secondary</Type>
+      <Code>J20.9</Code>
+    </Diagnosis>
+    <Activity>
+      <ID>2144071-6</ID>
+      <Start>15/12/2025 15:40</Start>
+      <Type>3</Type>
+      <Code>86738</Code>
+      <Quantity>1</Quantity>
+      <Net>0.00999999999999091</Net>
+      <Clinician>DHA-P-50423292</Clinician>
+      <PriorAuthorizationID>Auth215846</PriorAuthorizationID>
+    </Activity>
+    <Activity>
+      <ID>2144069-6</ID>
+      <Start>15/12/2025 15:40</Start>
+      <Type>3</Type>
+      <Code>85025</Code>
+      <Quantity>1</Quantity>
+      <Net>0.019999999999996</Net>
+      <Clinician>DHA-P-50423292</Clinician>
+      <PriorAuthorizationID>Auth215846</PriorAuthorizationID>
+    </Activity>
+    <Activity>
+      <ID>2144067-1</ID>
+      <Start>15/12/2025 15:39</Start>
+      <Type>8</Type>
+      <Code>9</Code>
+      <Quantity>1</Quantity>
+      <Net>51.42</Net>
+      <Clinician>DHA-P-50423292</Clinician>
+      <PriorAuthorizationID>Auth215846</PriorAuthorizationID>
+      <Observation>
+        <Type>Result</Type>
+        <Code>BMI</Code>
+        <Value>25.44</Value>
+        <ValueType>15/12/2025</ValueType>
+      </Observation>
+      <Observation>
+        <Type>Text</Type>
+        <Code>Presenting-Complaint</Code>
+        <Value>Sore Throat</Value>
+        <ValueType>Other</ValueType>
+      </Observation>
+      <Observation>
+        <Type>Text</Type>
+        <Code>Presenting-Complaint</Code>
+        <Value>Fever</Value>
+        <ValueType>Other</ValueType>
+      </Observation>
+      <Observation>
+        <Type>Result</Type>
+        <Code>BPS</Code>
+        <Value>110</Value>
+        <ValueType>15/12/2025</ValueType>
+      </Observation>
+      <Observation>
+        <Type>Text</Type>
+        <Code>Presenting-Complaint</Code>
+        <Value>The patient presented with fever, sore throat and cough&#13;for the past  3 days&#13;associated with  fatigue, headache and myalgia&#13;with no history of  gi disturbances&#13;euthyrox 100</Value>
+        <ValueType>Other</ValueType>
+      </Observation>
+      <Observation>
+        <Type>Result</Type>
+        <Code>BPD</Code>
+        <Value>74</Value>
+        <ValueType>15/12/2025</ValueType>
+      </Observation>
+      <Observation>
+        <Type>Text</Type>
+        <Code>Presenting-Complaint</Code>
+        <Value>Rhinitis</Value>
+        <ValueType>Other</ValueType>
+      </Observation>
+      <Observation>
+        <Type>Text</Type>
+        <Code>Presenting-Complaint</Code>
+        <Value>Cough</Value>
+        <ValueType>Other</ValueType>
+      </Observation>
+    </Activity>
+    <Resubmission>
+      <Type>internal complaint</Type>
+      <Comment>127.5 is the agreed tariff for cons gp. service is billed as per pre approval also. kindly pay the remaining amount</Comment>
+      <Attachment/>
+    </Resubmission>
+  </Claim>
+</Claim.Submission>

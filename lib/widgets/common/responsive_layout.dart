@@ -13,52 +13,82 @@ class ResponsiveTwoPanel extends StatelessWidget {
     required this.rightPanel,
     this.leftPanelWidth = 350.0,
     this.breakpoint = 900.0,
-    this.maxWidth = 1600.0,
+    this.maxWidth = 4200.0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < breakpoint) {
-          // Compact / Tablet / Mobile Layout -> Vertical Stack
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Left panel (e.g. Totals/List) on top
-              // Constrain height if it's a list to avoid infinite height error?
-              // Or just let it be chunks?
-              // If leftPanel is scrollable (ListView), it needs a height in a Column.
-              // We'll give it a flexible constraint or fixed ratio if needed.
-              // Ideally, the panels manage their own scrolling or are wrapped.
-              // But SingleEditorLeftPanel is a Container -> ListView.
-              // In a Column, ListView tries to expand recursively.
-              // We should wrap it in a limited height or Expanded/Flexible ratio?
-              // For "Totals", we want it to just take necessary space.
-              // Let's assume leftPanel adapts or use a constrained height box.
-              // Actually, for "Bulk", left panel is the LIST. We want that expansive.
-              // If < 900, maybe we use a tab/drawer approach?
-              // User asked for "automatically adjust".
-              // Let's try giving the top panel a max height (e.g. 40% of screen) if it's a list?
-              // Or just use a defined height for mobile.
-              // Let's wrap in a Flexible/Expanded logic.
-
-              // For simplicity and "Congestion" avoidance:
-              // Mobile View:
-              // [Left Panel (Summary/List)] -> Height 300?
-              // [Right Panel (Detail)] -> Expanded
-              SizedBox(
-                height: 300,
-                child: leftPanel,
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: rightPanel,
-              ),
-            ],
+          return DefaultTabController(
+            length: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.surfaceContainerLow,
+                        theme.colorScheme.surfaceContainer.withAlpha(220),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(12)),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: theme.colorScheme.outlineVariant.withAlpha(120),
+                      ),
+                    ),
+                  ),
+                  child: TabBar(
+                    dividerColor: Colors.transparent,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicator: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color:
+                              theme.colorScheme.outlineVariant.withAlpha(100)),
+                    ),
+                    labelColor: theme.colorScheme.onSecondaryContainer,
+                    labelStyle: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                    tabs: const [
+                      Tab(text: 'Summary'),
+                      Tab(text: 'Editor'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: leftPanel,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: rightPanel,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         } else {
-          // Desktop / Wide Layout -> Side by Side
           final content = Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -72,17 +102,23 @@ class ResponsiveTwoPanel extends StatelessWidget {
             ],
           );
 
-          // Center on ultra-wide screens
           if (constraints.maxWidth > maxWidth) {
             return Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
-                child: content,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: content,
+                ),
               ),
             );
           }
 
-          return content;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: content,
+          );
         }
       },
     );

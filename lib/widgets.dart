@@ -56,8 +56,8 @@ class ClaimDataSection extends StatelessWidget {
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        side: BorderSide(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(18.0),
+        side: BorderSide(color: colors.outlineVariant.withAlpha(120)),
       ),
       child: Column(
         mainAxisSize: canStretch ? MainAxisSize.max : MainAxisSize.min,
@@ -65,25 +65,39 @@ class ClaimDataSection extends StatelessWidget {
         children: [
           Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
-            color: colors.surfaceContainer,
+                const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  colors.surfaceContainerHigh,
+                  colors.surfaceContainer.withAlpha(210),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border(
+                bottom: BorderSide(color: colors.outlineVariant.withAlpha(110)),
+              ),
+            ),
             child: Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8.0,
-              runSpacing: 8.0,
+              spacing: 10.0,
+              runSpacing: 10.0,
               children: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (titleIcon != null) ...[
-                      Icon(titleIcon,
-                          size: 16, color: textStyles.titleSmall?.color),
+                      Icon(titleIcon, size: 18, color: colors.primary),
                       const SizedBox(width: 8),
                     ],
                     Text(
                       title,
-                      style: textStyles.titleMedium,
+                      style: textStyles.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.1,
+                      ),
                     ),
                     if (titleSuffix != null) ...[
                       const SizedBox(width: 8),
@@ -93,8 +107,8 @@ class ClaimDataSection extends StatelessWidget {
                 ),
                 if (actions != null)
                   Wrap(
-                    spacing: 4.0,
-                    runSpacing: 4.0,
+                    spacing: 6.0,
+                    runSpacing: 6.0,
                     alignment: WrapAlignment.end,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: actions!,
@@ -103,7 +117,7 @@ class ClaimDataSection extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(16.0),
             child: child,
           ),
         ],
@@ -138,10 +152,12 @@ class DataFieldWithCopy extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 9.0),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8.0),
+        color: theme.colorScheme.surfaceContainerHigh.withAlpha(190),
+        borderRadius: BorderRadius.circular(10.0),
+        border:
+            Border.all(color: theme.colorScheme.outlineVariant.withAlpha(95)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -199,10 +215,12 @@ class SimpleDataField extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 9.0),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8.0),
+        color: theme.colorScheme.surfaceContainerHigh.withAlpha(190),
+        borderRadius: BorderRadius.circular(10.0),
+        border:
+            Border.all(color: theme.colorScheme.outlineVariant.withAlpha(95)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,10 +265,18 @@ class HeaderActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = TextButton.icon(
-      style: TextButton.styleFrom(
+    final colors = Theme.of(context).colorScheme;
+    final button = FilledButton.tonalIcon(
+      style: FilledButton.styleFrom(
         visualDensity: VisualDensity.compact,
-        foregroundColor: color,
+        foregroundColor: color ?? colors.onSecondaryContainer,
+        backgroundColor:
+            color == null ? colors.secondaryContainer : colors.errorContainer,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        side: BorderSide(color: colors.outlineVariant.withAlpha(110)),
       ),
       icon: Icon(icon, size: 16),
       label: Text(label),

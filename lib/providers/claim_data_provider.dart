@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/models/claim_models.dart';
 import 'package:project_xmedit/repositories/claim_repository.dart';
+import 'package:project_xmedit/repositories/reference_data_repository.dart';
 import 'package:project_xmedit/services/xml_service.dart'
     show XmlParsingException, detectBulkXml;
 import 'package:project_xmedit/utils/attachment_helper.dart';
@@ -16,7 +18,7 @@ import 'package:project_xmedit/services/xml_validator.dart';
 import 'package:project_xmedit/models/validation_result.dart';
 
 class ClaimDataNotifier extends ChangeNotifier {
-  final DatabaseHelper _dbHelper = DatabaseHelper();
+  final ReferenceDataRepository _referenceData = ReferenceDataRepository();
   final ClaimRepository _repository = ClaimRepository();
 
   ClaimData? _claimData;
@@ -32,21 +34,24 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   String grossDifference = "";
   String netDifference = "";
-  Map<String, String> _cptDescriptions = {};
+  Map<String, CodeDescription> _activityDescriptions = {};
   bool isDiagnosisEditingEnabled = false;
 
   bool transferOnDelete = true;
   ValidationResult? _validationResult;
+  Timer? _activityDescriptionRefreshDebounce;
+  int _activityDescriptionRefreshEpoch = 0;
 
   ClaimDataNotifier() {
     _initDatabase();
   }
 
   Future<void> _initDatabase() async {
-    await _dbHelper.database;
+    await _referenceData.warmup();
   }
 
-  Map<String, String> get cptDescriptions => _cptDescriptions;
+  Map<String, CodeDescription> get activityDescriptions =>
+      _activityDescriptions;
   ClaimData? get claimData => _claimData;
   bool get isLoading => _isLoading;
   List<ActivityData> get originalActivities => _originalActivities;
@@ -59,6 +64,37 @@ class ClaimDataNotifier extends ChangeNotifier {
       (map[activity.type ?? 'unknown'] ??= []).add(activity);
     }
     return map;
+  }
+
+  String _activityDescriptionKey(String? activityType, String? code) =>
+      '${activityType ?? ''}|${code ?? ''}';
+
+  CodeDescription? getActivityDescription(String? activityType, String? code) {
+    if (code == null || code.trim().isEmpty) return null;
+    return _activityDescriptions[_activityDescriptionKey(activityType, code)];
+  }
+
+  Future<void> _refreshActivityDescriptions() async {
+    if (_claimData == null) return;
+    _activityDescriptions =
+        await _referenceData.getActivityDescriptions(_claimData!.activities);
+  }
+
+  void _refreshActivityDescriptionsAsync() {
+    if (_claimData == null) return;
+    _activityDescriptionRefreshDebounce?.cancel();
+    final int refreshEpoch = ++_activityDescriptionRefreshEpoch;
+    _activityDescriptionRefreshDebounce = Timer(
+      const Duration(milliseconds: 120),
+      () {
+        unawaited(_refreshActivityDescriptions().then((_) {
+          if (_claimData != null &&
+              refreshEpoch == _activityDescriptionRefreshEpoch) {
+            notifyListeners();
+          }
+        }));
+      },
+    );
   }
 
   void _setLoading(bool loading) {
@@ -124,6 +160,7 @@ class ClaimDataNotifier extends ChangeNotifier {
     }
     _validate();
     notifyListeners();
+    _refreshActivityDescriptionsAsync();
   }
 
   String? updateActivityQuantity(int index, String newQuantityText) {
@@ -228,10 +265,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       _originalActivities =
           _claimData!.activities.map((a) => ActivityData.clone(a)).toList();
       isDiagnosisEditingEnabled = false;
-      final activityCodes =
-          _claimData!.activities.map((a) => a.code).whereType<String>().toSet();
-      _cptDescriptions =
-          await _dbHelper.getDescriptionsForCptCodes(activityCodes);
+      await _refreshActivityDescriptions();
 
       _originalPatientShare =
           double.tryParse(_claimData!.patientShare ?? '0') ?? 0.0;
@@ -361,6 +395,7 @@ class ClaimDataNotifier extends ChangeNotifier {
   }
 
   void clearData() {
+    _activityDescriptionRefreshDebounce?.cancel();
     _claimData = null;
     _originalDiagnoses = [];
     _originalActivities = [];
@@ -369,11 +404,17 @@ class ClaimDataNotifier extends ChangeNotifier {
     netDifference = "";
     isDiagnosisEditingEnabled = false;
     transferOnDelete = false;
-    _cptDescriptions.clear();
+    _activityDescriptions.clear();
     _validationResult = null;
     _cachedAttachmentSize = null;
     notifyListeners();
     onMessage?.call('Data has been cleared.', false);
+  }
+
+  @override
+  void dispose() {
+    _activityDescriptionRefreshDebounce?.cancel();
+    super.dispose();
   }
 
   void toggleActivityDeleted(int index) {
@@ -455,6 +496,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       _validate();
 
       notifyListeners();
+      _refreshActivityDescriptionsAsync();
       onMessage?.call('Activity added successfully.', false);
     }
   }
@@ -536,6 +578,7 @@ class ClaimDataNotifier extends ChangeNotifier {
         _originalActivities.map((a) => ActivityData.clone(a)).toList();
     _validate();
     notifyListeners();
+    _refreshActivityDescriptionsAsync();
   }
 
   String get dispositionFlag => _claimData?.dispositionFlag ?? 'PRODUCTION';

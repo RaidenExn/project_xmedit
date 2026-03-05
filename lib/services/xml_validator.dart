@@ -60,20 +60,6 @@ class XmlValidator {
     final diagnosisError = ValidationRules.validatePrincipalDiagnosis(claim);
     if (diagnosisError != null) errors.add(diagnosisError);
 
-    // Validate each diagnosis code format
-    for (var i = 0; i < claim.diagnoses.length; i++) {
-      final diagnosis = claim.diagnoses[i];
-      final codeError = ValidationRules.validateIcd10Code(diagnosis.code);
-      if (codeError != null) {
-        errors.add(ValidationError(
-          field: 'diagnosis_${i + 1}_code',
-          message: codeError.message,
-          severity: codeError.severity,
-          suggestion: codeError.suggestion,
-        ));
-      }
-    }
-
     // 9. Validate resubmission information
     errors.addAll(ValidationRules.validateResubmission(claim));
 
@@ -97,9 +83,6 @@ class XmlValidator {
       case 'net':
       case 'patientShare':
         return ValidationRules.validateAmount(value as String?, fieldName);
-
-      case 'diagnosisCode':
-        return ValidationRules.validateIcd10Code(value as String?);
 
       case 'patientId':
         if (value == null || (value as String).trim().isEmpty) {

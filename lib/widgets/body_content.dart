@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/widgets/common/empty_state_view.dart';
-import 'package:project_xmedit/widgets/single_editor/single_editor_left_panel.dart';
-import 'package:project_xmedit/widgets/single_editor/single_editor_right_panel.dart';
-import 'package:project_xmedit/widgets/common/responsive_layout.dart';
+import 'package:project_xmedit/widgets/single_editor/single_claim_detail_editor.dart';
 
 class BodyContent extends StatelessWidget {
   const BodyContent({super.key});
@@ -27,9 +25,6 @@ class BodyContent extends StatelessWidget {
       );
     }
 
-    return const ResponsiveTwoPanel(
-      leftPanel: SingleEditorLeftPanel(),
-      rightPanel: SingleEditorRightPanel(),
-    );
+    return const SingleClaimDetailEditor();
   }
 }

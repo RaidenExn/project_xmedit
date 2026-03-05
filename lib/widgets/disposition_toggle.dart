@@ -12,50 +12,60 @@ class DispositionToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 32,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+    final normalizedValue = _normalizeDisposition(value);
+    final selected = <String>{normalizedValue};
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SegmentedButton<String>(
+      showSelectedIcon: false,
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        ),
+        textStyle: WidgetStateProperty.all(
+          const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.onSecondaryContainer;
+          }
+          return colorScheme.onSurfaceVariant;
+        }),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.secondaryContainer;
+          }
+          return colorScheme.surfaceContainerHighest;
+        }),
       ),
-      padding: const EdgeInsets.all(2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildOption(context, 'PRODUCTION', 'PROD', Colors.green),
-          _buildOption(context, 'TEST', 'TEST', Colors.orange),
-        ],
-      ),
+      segments: const [
+        ButtonSegment<String>(
+          value: 'PRODUCTION',
+          icon: Icon(Icons.cloud_done_outlined, size: 16),
+          label: Text('Production'),
+        ),
+        ButtonSegment<String>(
+          value: 'TEST',
+          icon: Icon(Icons.science_outlined, size: 16),
+          label: Text('Test'),
+        ),
+      ],
+      selected: selected,
+      onSelectionChanged: (selection) {
+        if (selection.isNotEmpty) {
+          onChanged(selection.first);
+        }
+      },
+      emptySelectionAllowed: false,
+      multiSelectionEnabled: false,
     );
   }
 
-  Widget _buildOption(
-      BuildContext context, String optionValue, String label, Color color) {
-    final isSelected = value == optionValue;
-    return InkWell(
-      onTap: () => onChanged(optionValue),
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : null,
-          borderRadius: BorderRadius.circular(6),
-          border: isSelected
-              ? Border.all(color: color.withValues(alpha: 0.5))
-              : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: isSelected
-                ? color
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
+  String _normalizeDisposition(String input) {
+    final raw = input.trim().toUpperCase();
+    if (raw == 'TEST') return 'TEST';
+    if (raw == 'PROD' || raw == 'PRODUCTION') return 'PRODUCTION';
+    return 'PRODUCTION';
   }
 }

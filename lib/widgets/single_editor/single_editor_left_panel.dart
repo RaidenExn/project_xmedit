@@ -13,7 +13,7 @@ class SingleEditorLeftPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final claimNotifier = context.watch<ClaimDataNotifier>();
     final theme = Theme.of(context);
-    const double spacing = 16.0;
+    const double spacing = 10.0;
 
     return Container(
       decoration: BoxDecoration(

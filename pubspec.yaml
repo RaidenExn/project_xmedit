@@ -28,6 +28,8 @@ dependencies:
   sqflite_common_ffi_web: ^1.1.0
   universal_io: ^2.3.1
   logger: ^2.6.2
+  cupertino_icons: ^1.0.8
+  archive: ^4.0.9
 
 
 dev_dependencies:
@@ -53,5 +55,4 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
-    - assets/code_descriptions.json
-    - assets/icd10.json
+    - assets/db_seed/

@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/models/claim_models.dart';
+import 'package:project_xmedit/repositories/reference_data_repository.dart';
 import 'package:project_xmedit/widgets/common/custom_table.dart';
-import 'package:project_xmedit/widgets/validation_widgets.dart';
+import 'package:project_xmedit/widgets/common/code_description_text.dart';
 
 const Map<String, int> _diagnosisColumnFlex = {
   'code': 3,
@@ -98,13 +99,14 @@ class _DiagnosisDataRow extends StatefulWidget {
 }
 
 class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
-  late Future<String?> _descriptionFuture;
+  final ReferenceDataRepository _referenceData = ReferenceDataRepository();
+  late Future<CodeDescription?> _descriptionFuture;
 
   @override
   void initState() {
     super.initState();
     _descriptionFuture =
-        DatabaseHelper().getIcd10Description(widget.diag.code ?? '');
+        _referenceData.getIcdDescription(widget.diag.code ?? '');
   }
 
   @override
@@ -121,12 +123,16 @@ class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
             : theme.colorScheme.onSurfaceVariant)
         : theme.disabledColor;
 
-    return FutureBuilder<String?>(
+    return FutureBuilder<CodeDescription?>(
       future: _descriptionFuture,
       builder: (context, snapshot) {
-        final description = snapshot.connectionState == ConnectionState.done
-            ? (snapshot.data ?? 'N/A')
-            : 'Loading...';
+        final shortDescription =
+            snapshot.connectionState == ConnectionState.done
+                ? (snapshot.data?.shortDescription ?? 'N/A')
+                : 'Loading...';
+        final fullDescription = snapshot.connectionState == ConnectionState.done
+            ? (snapshot.data?.fullDescription ?? shortDescription)
+            : shortDescription;
 
         return CustomDataRow(
           isZebra: widget.isZebra,
@@ -134,33 +140,17 @@ class _DiagnosisDataRowState extends State<_DiagnosisDataRow> {
           children: [
             Expanded(
               flex: _diagnosisColumnFlex['code']!,
-              child: Row(
-                children: [
-                  Text(widget.diag.code ?? '', style: textStyle),
-                  if (widget.notifier.validationResult?.getFirstErrorForField(
-                          'diagnosis_${widget.index + 1}_code') !=
-                      null)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4.0),
-                      child: ValidationIndicator(
-                        error: widget.notifier.validationResult!
-                            .getFirstErrorForField(
-                                'diagnosis_${widget.index + 1}_code'),
-                        size: 16,
-                      ),
-                    ),
-                ],
-              ),
+              child: Text(widget.diag.code ?? '', style: textStyle),
             ),
             Expanded(
               flex: _diagnosisColumnFlex['desc']!,
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  description,
+                child: CodeDescriptionText(
+                  shortDescription: shortDescription,
+                  fullDescription: fullDescription,
                   style: textStyle,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.left,
+                  enableTooltip: false,
                 ),
               ),
             ),

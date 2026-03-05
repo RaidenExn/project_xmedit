@@ -88,6 +88,12 @@ class PreferencesService {
   static const String _themeModeKey = 'theme_mode';
   static const String _seedColorKey = 'seed_color';
 
+  /// Clear all persisted app preferences.
+  static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
+
   /// Get saved theme mode
   static Future<String> getThemeMode() async {
     final prefs = await SharedPreferences.getInstance();

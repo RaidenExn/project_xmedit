@@ -15,8 +15,8 @@ void main() {
         ..payerID = 'PAY123'
         ..senderID = 'SENDER123'
         ..receiverID = 'RECEIVER123'
-        ..start = '2023-01-01'
-        ..end = '2023-01-01'
+        ..start = '01/01/2023'
+        ..end = '01/01/2023'
         ..gross = '100.00'
         ..patientShare = '20.00'
         ..net = '80.00';

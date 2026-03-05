@@ -6,6 +6,7 @@ import 'package:project_xmedit/widgets.dart';
 import 'package:project_xmedit/widgets/cards/controls_card.dart';
 import 'package:project_xmedit/widgets/cards/diagnosis_card.dart';
 import 'package:project_xmedit/widgets/cards/activities_widgets.dart';
+import 'package:project_xmedit/widgets/common/claim_hero_header.dart';
 // Wait, BodyContent had inline logic. I should probably move that inline logic to this file or use the ActivitiesCard if it serves the purpose.
 // Checking previous view_file of BodyContent, it imported activities_card.dart but used inline Builder.
 // I will replicate the inline logic here to ensure exact behavior, as ActivitiesCard might be old.
@@ -23,7 +24,10 @@ class SingleEditorRightPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final claimNotifier = context.watch<ClaimDataNotifier>();
     final theme = Theme.of(context);
-    const double spacing = 16.0;
+    final claim = claimNotifier.claimData;
+    const double spacing = 10.0;
+
+    if (claim == null) return const SizedBox.shrink();
 
     // Resubmission Helpers
     final resubmission = claimNotifier.claimData?.resubmission;
@@ -34,119 +38,120 @@ class SingleEditorRightPanel extends StatelessWidget {
         (hasAttachment ? 'Calculating...' : 'No Attachment');
     final isAttachmentInvalid = claimNotifier.isAttachmentInvalid;
 
-    return Expanded(
-      child: Container(
-        color: theme.colorScheme.surface,
-        child: ListView(
-          padding: const EdgeInsets.all(spacing),
-          children: [
-            // 1. Resubmission
-            ClaimDataSection(
-              title: "Resubmission",
-              titleIcon: Icons.tune_rounded,
-              actions: [
-                if (hasAttachment) ...[
-                  ActionChip(
-                    avatar: Icon(
-                      Icons.picture_as_pdf_rounded,
-                      size: 16,
-                      color:
-                          isAttachmentInvalid ? theme.colorScheme.error : null,
-                    ),
-                    label: Text(attachmentText),
-                    onPressed: !isAttachmentInvalid
-                        ? () =>
-                            claimNotifier.viewResubmissionAttachment(context)
-                        : null,
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    labelStyle: TextStyle(
-                        color: isAttachmentInvalid
-                            ? theme.colorScheme.error
-                            : null),
-                  ),
-                  const SizedBox(width: 8),
-                  HeaderActionButton(
-                    icon: Icons.edit_rounded,
-                    label: "Replace",
-                    onPressed: claimNotifier.addOrEditResubmissionAttachment,
-                    tooltip: "Replace PDF",
-                  ),
-                  HeaderActionButton(
-                    icon: Icons.delete_rounded,
-                    label: "Delete",
-                    onPressed: claimNotifier.deleteResubmissionAttachment,
-                    color: theme.colorScheme.error,
-                    tooltip: "Delete PDF",
-                  ),
-                ] else
-                  HeaderActionButton(
-                    icon: Icons.upload_file_rounded,
-                    label: "Add PDF",
-                    onPressed: claimNotifier.addOrEditResubmissionAttachment,
-                    tooltip: "Upload Resubmission PDF",
-                  ),
-              ],
-              child: const ControlsResubmissionCard(),
-            ),
-            const SizedBox(height: spacing),
+    return Container(
+      color: theme.colorScheme.surface,
+      child: ListView(
+        padding: const EdgeInsets.all(spacing),
+        children: [
+          ClaimHeroHeader(
+            claimId: claim.claimId ?? 'UNKNOWN',
+            subtitle: 'Single Claim Mode',
+            memberId: claim.memberID ?? 'N/A',
+            encounterDate: claim.start ?? 'N/A',
+          ),
+          const SizedBox(height: spacing),
 
-            // 2. Activities (Refactored to separate component if possible, but keeping inline for now as in original)
-            _ActivitiesSection(claimNotifier: claimNotifier, theme: theme),
-            const SizedBox(height: spacing),
-
-            // 3. Diagnoses
-            ClaimDataSection(
-              title: "Diagnoses",
-              titleIcon: Icons.medical_information_rounded,
-              actions: [
-                FilterChip(
-                  label: const Text("Edit Mode"),
-                  selected: claimNotifier.isDiagnosisEditingEnabled,
-                  onSelected: claimNotifier.toggleDiagnosisEditing,
+          // 1. Resubmission
+          ClaimDataSection(
+            title: "Resubmission",
+            titleIcon: Icons.tune_rounded,
+            actions: [
+              if (hasAttachment) ...[
+                ActionChip(
+                  avatar: Icon(
+                    Icons.picture_as_pdf_rounded,
+                    size: 16,
+                    color: isAttachmentInvalid ? theme.colorScheme.error : null,
+                  ),
+                  label: Text(attachmentText),
+                  onPressed: !isAttachmentInvalid
+                      ? () => claimNotifier.viewResubmissionAttachment(context)
+                      : null,
                   visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  labelStyle: TextStyle(
+                      color:
+                          isAttachmentInvalid ? theme.colorScheme.error : null),
                 ),
                 const SizedBox(width: 8),
-                if (claimNotifier.isDiagnosisEditingEnabled) ...[
-                  HeaderActionButton(
-                    icon: Icons.add,
-                    label: "Add",
-                    onPressed: () =>
-                        showDiagnosisSearchDialog(context, claimNotifier),
-                  ),
-                  HeaderActionButton(
-                    icon: Icons.refresh,
-                    label: "Reset",
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Confirm Reset'),
-                          content: const Text(
-                              'Are you sure you want to reset all diagnoses?'),
-                          actions: [
-                            TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false),
-                                child: const Text('Cancel')),
-                            TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(true),
-                                child: const Text('Reset')),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        claimNotifier.resetDiagnoses();
-                      }
-                    },
-                  ),
-                ],
+                HeaderActionButton(
+                  icon: Icons.edit_rounded,
+                  label: "Replace",
+                  onPressed: claimNotifier.addOrEditResubmissionAttachment,
+                  tooltip: "Replace PDF",
+                ),
+                HeaderActionButton(
+                  icon: Icons.delete_rounded,
+                  label: "Delete",
+                  onPressed: claimNotifier.deleteResubmissionAttachment,
+                  color: theme.colorScheme.error,
+                  tooltip: "Delete PDF",
+                ),
+              ] else
+                HeaderActionButton(
+                  icon: Icons.upload_file_rounded,
+                  label: "Add PDF",
+                  onPressed: claimNotifier.addOrEditResubmissionAttachment,
+                  tooltip: "Upload Resubmission PDF",
+                ),
+            ],
+            child: const ControlsResubmissionCard(),
+          ),
+          const SizedBox(height: spacing),
+
+          // 2. Activities (Refactored to separate component if possible, but keeping inline for now as in original)
+          _ActivitiesSection(claimNotifier: claimNotifier, theme: theme),
+          const SizedBox(height: spacing),
+
+          // 3. Diagnoses
+          ClaimDataSection(
+            title: "Diagnoses",
+            titleIcon: Icons.medical_information_rounded,
+            actions: [
+              FilterChip(
+                label: const Text("Edit Mode"),
+                selected: claimNotifier.isDiagnosisEditingEnabled,
+                onSelected: claimNotifier.toggleDiagnosisEditing,
+                visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 8),
+              if (claimNotifier.isDiagnosisEditingEnabled) ...[
+                HeaderActionButton(
+                  icon: Icons.add,
+                  label: "Add",
+                  onPressed: () =>
+                      showDiagnosisSearchDialog(context, claimNotifier),
+                ),
+                HeaderActionButton(
+                  icon: Icons.refresh,
+                  label: "Reset",
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Confirm Reset'),
+                        content: const Text(
+                            'Are you sure you want to reset all diagnoses?'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Cancel')),
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('Reset')),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      claimNotifier.resetDiagnoses();
+                    }
+                  },
+                ),
               ],
-              child: const DiagnosisCard(),
-            ),
-          ],
-        ),
+            ],
+            child: const DiagnosisCard(),
+          ),
+        ],
       ),
     );
   }

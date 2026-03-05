@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/notifiers.dart';
+import 'package:project_xmedit/repositories/reference_data_repository.dart';
 
 Future<void> showDiagnosisSearchDialog(
     BuildContext context, ClaimDataNotifier notifier) async {
@@ -21,6 +21,7 @@ class DiagnosisSearchDialog extends StatefulWidget {
 }
 
 class _DiagnosisSearchDialogState extends State<DiagnosisSearchDialog> {
+  final ReferenceDataRepository _referenceData = ReferenceDataRepository();
   final _searchController = TextEditingController();
   List<MapEntry<String, String>> _filteredDiagnoses = [];
 
@@ -43,7 +44,7 @@ class _DiagnosisSearchDialogState extends State<DiagnosisSearchDialog> {
       if (mounted) setState(() => _filteredDiagnoses = []);
       return;
     }
-    final results = await DatabaseHelper().searchIcd10(query);
+    final results = await _referenceData.searchIcd10(query);
     if (mounted) {
       setState(() => _filteredDiagnoses = results);
     }

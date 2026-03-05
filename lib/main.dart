@@ -64,77 +64,150 @@ class AppContent extends StatelessWidget {
 
   const AppContent({super.key, required this.title});
 
+  ThemeData _buildTheme(Color seedColor, Brightness brightness) {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: seedColor,
+      brightness: brightness,
+      dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
+    );
+
+    final baseTextTheme = ThemeData(brightness: brightness).textTheme;
+    final textTheme = baseTextTheme
+        .copyWith(
+          displayLarge: baseTextTheme.displayLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.6,
+          ),
+          displayMedium: baseTextTheme.displayMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+          headlineSmall: baseTextTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
+          titleLarge: baseTextTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+          titleMedium: baseTextTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+            height: 1.35,
+          ),
+          labelLarge: baseTextTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        )
+        .apply(
+          fontFamily: 'Plus Jakarta Sans',
+          bodyColor: colorScheme.onSurface,
+          displayColor: colorScheme.onSurface,
+        );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      colorScheme: colorScheme,
+      textTheme: textTheme,
+      scaffoldBackgroundColor: colorScheme.surface,
+      visualDensity: VisualDensity.standard,
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      appBarTheme: AppBarTheme(
+        elevation: 0,
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        foregroundColor: colorScheme.onSurface,
+        scrolledUnderElevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        color: colorScheme.surfaceContainerLow.withAlpha(240),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: colorScheme.outlineVariant.withAlpha(150)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: brightness == Brightness.dark
+            ? colorScheme.surfaceContainerHigh
+            : colorScheme.surfaceContainerLowest,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: colorScheme.outlineVariant.withAlpha(160),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.8),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
+      dividerTheme: DividerThemeData(
+        thickness: 1,
+        color: colorScheme.outlineVariant.withAlpha(120),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          side: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        side: BorderSide(color: colorScheme.outlineVariant.withAlpha(120)),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        labelStyle: textTheme.labelMedium,
+      ),
+      tooltipTheme: TooltipThemeData(
+        waitDuration: const Duration(milliseconds: 400),
+        decoration: BoxDecoration(
+          color: brightness == Brightness.dark
+              ? colorScheme.inverseSurface
+              : const Color(0xFF232326),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        textStyle: TextStyle(
+          color: brightness == Brightness.dark
+              ? colorScheme.onInverseSurface
+              : Colors.white,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeNotifier = context.watch<ThemeNotifier>();
     return MaterialApp(
       title: title,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: themeNotifier.seedColor,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFFF5F7FA),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: themeNotifier.seedColor, width: 2),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        ),
-        tooltipTheme: TooltipThemeData(
-          waitDuration: const Duration(milliseconds: 500),
-          decoration: BoxDecoration(
-            color: const Color(0xFF313033),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          textStyle: const TextStyle(color: Color(0xFFF4EFF4), fontSize: 12),
-        ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: themeNotifier.seedColor,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF1A1C1E),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: themeNotifier.seedColor, width: 2),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        ),
-        tooltipTheme: TooltipThemeData(
-          waitDuration: const Duration(milliseconds: 500),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE6E1E5),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          textStyle: const TextStyle(color: Color(0xFF313033), fontSize: 12),
-        ),
-      ),
+      theme: _buildTheme(themeNotifier.seedColor, Brightness.light),
+      darkTheme: _buildTheme(themeNotifier.seedColor, Brightness.dark),
       themeMode: themeNotifier.themeMode,
       debugShowCheckedModeBanner: false,
       home: const HomePage(),

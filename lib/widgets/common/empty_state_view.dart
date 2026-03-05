@@ -18,49 +18,95 @@ class EmptyStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Center(
-      child: MouseRegion(
-        cursor: onAction != null
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.basic,
-        child: InkWell(
-          onTap: onAction,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.primary,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: MouseRegion(
+          cursor: onAction != null
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.basic,
+          child: InkWell(
+            onTap: onAction,
+            borderRadius: BorderRadius.circular(24),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 38),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    colors.surfaceContainerHigh,
+                    colors.secondaryContainer.withAlpha(70),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: colors.outlineVariant.withAlpha(120),
                 ),
-                if (message != null) ...[
-                  const SizedBox(height: 8),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadow.withAlpha(30),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  )
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 78,
+                    height: 78,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          colors.primaryContainer,
+                          colors.secondaryContainer,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 34,
+                      color: colors.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   Text(
-                    message!,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    title,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
+                  if (message != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      message!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  if (actionLabel != null && onAction != null) ...[
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: onAction,
+                      icon: const Icon(Icons.file_open_rounded, size: 18),
+                      label: Text(actionLabel!),
+                    ),
+                  ],
                 ],
-                if (actionLabel != null && onAction != null) ...[
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
-                    onPressed: onAction,
-                    child: Text(actionLabel!),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
         ),

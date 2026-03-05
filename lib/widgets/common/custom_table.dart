@@ -7,9 +7,19 @@ class CustomTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 28,
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 14.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.surfaceContainerHigh,
+              Theme.of(context).colorScheme.surfaceContainer.withAlpha(220),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+        ),
         child: Row(
           children: children,
         ),
@@ -49,8 +59,8 @@ class _CustomDataRowState extends State<CustomDataRow> {
     // If hovered, overlay a subtle primary tint or darken/lighten slightly
     final hoverColor = Theme.of(context)
         .colorScheme
-        .onSurface
-        .withValues(alpha: 0.05); // Subtle hover overlay
+        .primary
+        .withValues(alpha: 0.07); // Subtle hover overlay
 
     final effectiveColor = _isHovered
         ? Color.alphaBlend(hoverColor, baseColor ?? Colors.transparent)
@@ -59,10 +69,19 @@ class _CustomDataRowState extends State<CustomDataRow> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: Container(
-        height: 34,
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-        color: effectiveColor,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+        constraints: const BoxConstraints(minHeight: 42),
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 4.0),
+        decoration: BoxDecoration(
+          color: effectiveColor,
+          border: Border(
+            bottom: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant.withAlpha(55),
+            ),
+          ),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: widget.children,

@@ -16,34 +16,6 @@ class ValidationRules {
     return null;
   }
 
-  /// Validate ICD-10 diagnosis code format
-  /// Format: Letter + 2-3 digits + optional decimal + 1-4 characters
-  static ValidationError? validateIcd10Code(String? code) {
-    if (code == null || code.trim().isEmpty) {
-      return const ValidationError(
-        field: 'diagnosisCode',
-        message: 'Diagnosis code cannot be empty',
-        severity: ValidationSeverity.error,
-      );
-    }
-
-    final cleanCode = code.trim().toUpperCase();
-
-    // ICD-10 pattern: Letter + 2-3 digits + optional (. + 1-4 chars)
-    final icd10Pattern = RegExp(r'^[A-Z]\d{2,3}(\.\d{1,4})?$');
-
-    if (!icd10Pattern.hasMatch(cleanCode)) {
-      return const ValidationError(
-        field: 'diagnosisCode',
-        message: 'Invalid ICD-10 code format',
-        severity: ValidationSeverity.error,
-        suggestion: 'Format should be like A00 or A00.1234',
-      );
-    }
-
-    return null;
-  }
-
   /// Validate date format (dd/MM/yyyy or dd/MM/yyyy HH:mm)
   static ValidationError? validateDate(String? dateStr, String fieldName) {
     if (dateStr == null || dateStr.trim().isEmpty) {

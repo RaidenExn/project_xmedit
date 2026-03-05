@@ -3,6 +3,7 @@ import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/providers/claim_data_provider.dart'; // Moved here
 import 'package:project_xmedit/models/claim_models.dart';
 import 'package:project_xmedit/widgets/common/custom_table.dart';
+import 'package:project_xmedit/widgets/common/code_description_text.dart';
 import 'package:project_xmedit/widgets/common/editable_cells.dart';
 import 'package:project_xmedit/dialogs/observation_dialog.dart'; // Moved here
 
@@ -111,11 +112,14 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
   late TextEditingController _netController;
   late TextEditingController _copayController;
   late TextEditingController _priorAuthController;
+  final FocusNode _codeFocusNode = FocusNode();
+  bool _isCodeEditing = false;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    _codeFocusNode.addListener(_handleCodeFocusChange);
   }
 
   void _initializeControllers() {
@@ -163,8 +167,35 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
 
   @override
   void dispose() {
+    _codeFocusNode.removeListener(_handleCodeFocusChange);
+    _codeFocusNode.dispose();
     _disposeControllers();
     super.dispose();
+  }
+
+  bool get _isDoubleClickEditableCodeType =>
+      widget.activity.type == '3' ||
+      widget.activity.type == '5' ||
+      widget.activity.type == '6';
+
+  void _handleCodeFocusChange() {
+    if (!_codeFocusNode.hasFocus && _isCodeEditing && mounted) {
+      setState(() => _isCodeEditing = false);
+    }
+  }
+
+  void _startCodeEditing() {
+    if (!_isDoubleClickEditableCodeType || widget.activity.isDeleted) return;
+    setState(() => _isCodeEditing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _codeFocusNode.requestFocus();
+        _dslCodeController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _dslCodeController.text.length,
+        );
+      }
+    });
   }
 
   void _onDslCodeChanged() {
@@ -217,8 +248,12 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
       fontStyle: isDeleted ? FontStyle.italic : null,
       color: isDeleted ? Theme.of(context).colorScheme.error : null,
     );
-    final description =
-        widget.notifier.cptDescriptions[widget.activity.code] ?? 'N/A';
+    final descriptionData = widget.notifier.getActivityDescription(
+      widget.activity.type,
+      widget.activity.code,
+    );
+    final description = descriptionData?.shortDescription ?? 'N/A';
+    final fullDescription = descriptionData?.fullDescription ?? description;
     final int observationCount = widget.activity.observations.length;
 
     final validationResult = widget.notifier.validationResult;
@@ -226,18 +261,27 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
     final validationIndex = widget.originalIndex + 1;
 
     Widget codeWidget;
-    if (widget.activity.type == '8') {
+    if (widget.activity.type == '8' || _isCodeEditing) {
       codeWidget = TextFormField(
         controller: _dslCodeController,
+        focusNode: widget.activity.type == '8' ? null : _codeFocusNode,
         style: textStyle,
         decoration: const InputDecoration(
           border: UnderlineInputBorder(),
           isDense: true,
           contentPadding: EdgeInsets.only(bottom: 4),
         ),
+        onFieldSubmitted: (_) {
+          if (_isCodeEditing && mounted) {
+            setState(() => _isCodeEditing = false);
+          }
+        },
       );
     } else {
-      codeWidget = Text(widget.activity.code ?? 'N/A', style: textStyle);
+      codeWidget = GestureDetector(
+        onDoubleTap: _startCodeEditing,
+        child: Text(widget.activity.code ?? 'N/A', style: textStyle),
+      );
     }
 
     // Checking for specific field errors
@@ -298,11 +342,10 @@ class _ActivityDataRowState extends State<ActivityDataRow> {
           flex: _activityColumnFlex['desc']!,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              description,
+            child: CodeDescriptionText(
+              shortDescription: description,
+              fullDescription: fullDescription,
               style: textStyle,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.left,
             ),
           ),
         ),

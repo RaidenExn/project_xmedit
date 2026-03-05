@@ -1,0 +1,25 @@
+{
+  "xml_files": {
+    "DHA-F-0045572-TPA004-05032026225658-resub.xml": 42,
+    "DHA-F-0045572-TPA016-02032026084056-resub.xml": 1
+  },
+  "summary": {
+    "unique_activity_codes_by_type": {
+      "CPT": 31,
+      "DSL": 2
+    },
+    "unique_diagnosis_codes": 88,
+    "unique_payer_ids": 1,
+    "unique_receiver_ids": 2,
+    "unique_clinician_ids": 13
+  },
+  "coverage": {
+    "service_missing": {
+      "CPT": [],
+      "DSL": []
+    },
+    "icd_missing": [],
+    "payer_missing": [],
+    "clinician_missing": []
+  }
+}

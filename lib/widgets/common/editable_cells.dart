@@ -17,24 +17,51 @@ class EditableQuantityCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor = validationError != null
+        ? theme.colorScheme.error
+        : theme.colorScheme.outlineVariant.withAlpha(150);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        TextFormField(
-          controller: controller,
-          enabled: enabled,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14),
-          decoration: const InputDecoration(
-            border: InputBorder.none,
-            isDense: true,
-            hintText: '1',
-            contentPadding: EdgeInsets.zero,
+        SizedBox(
+          height: 34,
+          child: TextFormField(
+            controller: controller,
+            enabled: enabled,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: '1',
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              filled: true,
+              fillColor: enabled
+                  ? theme.colorScheme.surfaceContainerLow
+                  : theme.colorScheme.surfaceContainerLowest,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.primary),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.error),
+              ),
+            ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+            ],
           ),
-          keyboardType: TextInputType.number,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
         ),
         if (validationError != null)
           ValidationIndicator(error: validationError!, size: 12),
@@ -65,32 +92,43 @@ class EditableNumberCell extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: isEnabled
-                ? theme.colorScheme.surfaceContainerHighest
-                    .withAlpha((255 * 0.8).round())
-                : theme.colorScheme.surfaceContainerHighest
-                    .withAlpha((255 * 0.4).round()),
-            borderRadius: BorderRadius.circular(6.0),
-            border: hasError
-                ? Border.all(color: theme.colorScheme.error, width: 1)
-                : null,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+        SizedBox(
+          height: 34,
           child: TextFormField(
             controller: controller,
             enabled: isEnabled,
             textAlign: TextAlign.right,
             style: theme.textTheme.bodyMedium?.copyWith(
               fontSize: 14,
+              fontWeight: FontWeight.w600,
               color:
                   isEnabled ? theme.colorScheme.onSurface : theme.disabledColor,
             ),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
+            decoration: InputDecoration(
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(vertical: 6),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              filled: true,
+              fillColor: isEnabled
+                  ? theme.colorScheme.surfaceContainerLow
+                  : theme.colorScheme.surfaceContainerLowest,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: hasError
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.outlineVariant.withAlpha(150),
+                  width: hasError ? 1.2 : 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.primary),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.error),
+              ),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
@@ -132,33 +170,44 @@ class EditableStringCell extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: isEnabled
-                ? theme.colorScheme.surfaceContainerHighest
-                    .withAlpha((255 * 0.8).round())
-                : theme.colorScheme.surfaceContainerHighest
-                    .withAlpha((255 * 0.4).round()),
-            borderRadius: BorderRadius.circular(6.0),
-            border: hasError
-                ? Border.all(color: theme.colorScheme.error, width: 1)
-                : null,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+        SizedBox(
+          height: 34,
           child: TextFormField(
             controller: controller,
             enabled: isEnabled,
             textAlign: TextAlign.left,
             style: theme.textTheme.bodyMedium?.copyWith(
-              fontSize: 12, // Slightly smaller font for ID
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
               color:
                   isEnabled ? theme.colorScheme.onSurface : theme.disabledColor,
             ),
             decoration: InputDecoration(
-              border: InputBorder.none,
               isDense: true,
               hintText: hintText,
-              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              filled: true,
+              fillColor: isEnabled
+                  ? theme.colorScheme.surfaceContainerLow
+                  : theme.colorScheme.surfaceContainerLowest,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: hasError
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.outlineVariant.withAlpha(150),
+                  width: hasError ? 1.2 : 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.primary),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.colorScheme.error),
+              ),
             ),
           ),
         ),

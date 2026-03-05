@@ -179,10 +179,23 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final notifier = context.watch<ClaimDataNotifier>();
     final bulkNotifier = context.watch<BulkClaimDataNotifier>();
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompactToolbar = screenWidth < 1280;
 
     final bool isSingleDataLoaded = notifier.claimData != null;
     final bool isBulkDataLoaded = bulkNotifier.bulkData != null;
     final bool isAnyDataLoaded = isSingleDataLoaded || isBulkDataLoaded;
+    final activeClaim =
+        isBulkDataLoaded ? bulkNotifier.selectedClaim : notifier.claimData;
+    final claimId = (activeClaim?.claimId?.trim().isNotEmpty ?? false)
+        ? activeClaim!.claimId!
+        : null;
+    final claimMember = (activeClaim?.memberID?.trim().isNotEmpty ?? false)
+        ? activeClaim!.memberID!
+        : 'N/A';
+    final claimEncounter = (activeClaim?.start?.trim().isNotEmpty ?? false)
+        ? activeClaim!.start!
+        : 'N/A';
 
     final bool isMac = defaultTargetPlatform == TargetPlatform.macOS;
 
@@ -360,159 +373,201 @@ class _HomePageState extends State<HomePage> {
           child: Scaffold(
             key: _scaffoldKey, // Assigned key
             appBar: AppBar(
-              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+              surfaceTintColor: Colors.transparent,
               elevation: 0,
-              automaticallyImplyLeading:
-                  true, // Use standard leading widget (Hamburger)
+              scrolledUnderElevation: 0,
+              automaticallyImplyLeading: true,
               titleSpacing: NavigationToolbar.kMiddleSpacing,
-              title: isBulkDataLoaded
-                  ? Text('Bulk Claim Editor',
-                      style: Theme.of(context).textTheme.titleMedium)
-                  : null,
-              actions: [
-                // ... (actions)
-
-                // Group: Edit Actions (Clear All, Undo, Reset)
-                if (isAnyDataLoaded) ...[
-                  IconButton(
-                    icon: const Icon(Icons.clear_all),
-                    tooltip: "Clear All",
-                    onPressed: () {
-                      notifier.clearData();
-                      bulkNotifier.clearData();
-                    },
-                  ),
-                  const SizedBox(width: 4),
-
-                  // Undo (Bulk and Single)
-                  Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.undo),
-                        tooltip: "Undo",
-                        onPressed: isBulkDataLoaded
-                            ? (bulkNotifier.canUndo ? bulkNotifier.undo : null)
-                            : null, // Single undo not implemented yet
-                      ),
-                      if (isBulkDataLoaded && bulkNotifier.canUndo)
-                        Positioned(
-                          right: 4,
-                          top: 4,
-                          child: IgnorePointer(
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                '${bulkNotifier.undoStack.length}',
-                                style: TextStyle(
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
+              title: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    claimId != null
+                        ? 'Claim: $claimId'
+                        : (isBulkDataLoaded
+                            ? 'Bulk Claim Workspace'
+                            : 'Single Claim Workspace'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    claimId != null
+                        ? 'Member: $claimMember    Encounter: $claimEncounter'
+                        : (isBulkDataLoaded
+                            ? '${bulkNotifier.filteredClaimCount}/${bulkNotifier.totalClaims} claims loaded'
+                            : (isSingleDataLoaded
+                                ? '1 claim loaded'
+                                : 'No file loaded')),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+              actions: [
+                if (isAnyDataLoaded)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: DispositionToggle(
+                      value: isBulkDataLoaded
+                          ? bulkNotifier.dispositionFlag
+                          : notifier.dispositionFlag,
+                      onChanged: isBulkDataLoaded
+                          ? bulkNotifier.setDispositionFlag
+                          : notifier.setDispositionFlag,
+                    ),
+                  ),
+                if (isAnyDataLoaded) ...[
+                  if (isCompactToolbar)
+                    IconButton.filledTonal(
+                      onPressed: () {
+                        if (isBulkDataLoaded) {
+                          bulkNotifier.saveBulkXmlFile(saveAs: true);
+                        } else {
+                          _handleSaveAs(notifier);
+                        }
+                      },
+                      icon: const Icon(Icons.save_as_rounded),
+                      tooltip: 'Save As',
+                    )
+                  else
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        if (isBulkDataLoaded) {
+                          bulkNotifier.saveBulkXmlFile(saveAs: true);
+                        } else {
+                          _handleSaveAs(notifier);
+                        }
+                      },
+                      icon: const Icon(Icons.save_as_rounded),
+                      label: const Text('Save As'),
+                    ),
+                  const SizedBox(width: 6),
+                  if (isCompactToolbar)
+                    IconButton.filled(
+                      onPressed: () {
+                        if (isBulkDataLoaded) {
+                          bulkNotifier.saveBulkXmlFile(saveAs: false);
+                        } else {
+                          notifier.saveXmlFile(saveAs: false);
+                        }
+                      },
+                      icon: const Icon(Icons.playlist_add_check_rounded),
+                      tooltip: 'Apply',
+                    )
+                  else
+                    FilledButton.icon(
+                      icon: const Icon(Icons.playlist_add_check_rounded),
+                      label: const Text('Apply'),
+                      onPressed: () {
+                        if (isBulkDataLoaded) {
+                          bulkNotifier.saveBulkXmlFile(saveAs: false);
+                        } else {
+                          notifier.saveXmlFile(saveAs: false);
+                        }
+                      },
+                    ),
+                  if (isBulkDataLoaded) ...[
+                    const SizedBox(width: 6),
+                    if (isCompactToolbar)
+                      IconButton.filledTonal(
+                        onPressed: bulkNotifier.splitAndSaveBulkXml,
+                        icon: const Icon(Icons.call_split_rounded),
+                        tooltip: 'Split Bulk File',
+                      )
+                    else
+                      FilledButton.tonalIcon(
+                        onPressed: bulkNotifier.splitAndSaveBulkXml,
+                        icon: const Icon(Icons.call_split_rounded),
+                        label: const Text('Split'),
+                      ),
+                  ],
+                  const SizedBox(width: 6),
+                  PopupMenuButton<String>(
+                    tooltip: 'More Actions',
+                    icon: const Icon(Icons.more_horiz_rounded),
+                    onSelected: (value) {
+                      if (value == 'clear') {
+                        notifier.clearData();
+                        bulkNotifier.clearData();
+                      } else if (value == 'undo' &&
+                          isBulkDataLoaded &&
+                          bulkNotifier.canUndo) {
+                        bulkNotifier.undo();
+                      } else if (value == 'reset') {
+                        if (isBulkDataLoaded) {
+                          if (bulkNotifier.canReset) bulkNotifier.reset();
+                        } else if (notifier.canReset) {
+                          notifier.reset();
+                        }
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'clear',
+                        child: ListTile(
+                          leading: Icon(Icons.clear_all_rounded),
+                          title: Text('Clear All'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'undo',
+                        enabled: isBulkDataLoaded && bulkNotifier.canUndo,
+                        child: ListTile(
+                          leading: const Icon(Icons.undo_rounded),
+                          title: Text(
+                              'Undo${isBulkDataLoaded ? ' (${bulkNotifier.undoStack.length})' : ''}'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'reset',
+                        enabled: isBulkDataLoaded
+                            ? bulkNotifier.canReset
+                            : notifier.canReset,
+                        child: const ListTile(
+                          leading: Icon(Icons.refresh_rounded),
+                          title: Text('Reset'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(width: 4),
-
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    tooltip: "Reset",
-                    onPressed: isBulkDataLoaded
-                        ? (bulkNotifier.canReset ? bulkNotifier.reset : null)
-                        : (notifier.canReset ? notifier.reset : null),
-                  ),
-                  const VerticalDivider(indent: 12, endIndent: 12),
-
-                  // Group: Disposition
-                  DispositionToggle(
-                    value: isBulkDataLoaded
-                        ? bulkNotifier.dispositionFlag
-                        : notifier.dispositionFlag,
-                    onChanged: isBulkDataLoaded
-                        ? bulkNotifier.setDispositionFlag
-                        : notifier.setDispositionFlag,
-                  ),
-                  const VerticalDivider(indent: 12, endIndent: 12),
-
-                  // Group: File Ops (Split, Save As, Apply)
-                  if (isBulkDataLoaded) ...[
-                    FilledButton.tonal(
-                      onPressed: bulkNotifier.splitAndSaveBulkXml,
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: const Text("Split"),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-
-                  FilledButton.tonal(
-                    onPressed: () {
-                      if (isBulkDataLoaded) {
-                        bulkNotifier.saveBulkXmlFile(saveAs: true);
-                      } else {
-                        _handleSaveAs(notifier);
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    child: const Text("Save As"),
-                  ),
-                  const SizedBox(width: 8),
-
-                  FilledButton.icon(
-                    icon: const Icon(Icons.save_outlined),
-                    label: Text(isBulkDataLoaded
-                        ? "Apply"
-                        : "Apply"), // Using Apply for both as per user request flow, or keep consistent with Save icon
-                    onPressed: () {
-                      if (isBulkDataLoaded) {
-                        bulkNotifier.saveBulkXmlFile(saveAs: false);
-                      } else {
-                        notifier.saveXmlFile(saveAs: false);
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                  const VerticalDivider(indent: 12, endIndent: 12),
                 ],
-
-                // Open Button (Always Last)
-                FilledButton.icon(
-                  icon: const Icon(Icons.folder_open_outlined),
-                  label: const Text("Open"),
-                  onPressed: () {
-                    if (isBulkDataLoaded) {
-                      bulkNotifier.loadBulkXmlFile();
-                    } else {
-                      notifier.loadXmlFile();
-                    }
-                  },
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.secondaryContainer,
-                    foregroundColor:
-                        Theme.of(context).colorScheme.onSecondaryContainer,
+                const SizedBox(width: 6),
+                if (isCompactToolbar)
+                  IconButton.filledTonal(
+                    onPressed: () {
+                      if (isBulkDataLoaded) {
+                        bulkNotifier.loadBulkXmlFile();
+                      } else {
+                        notifier.loadXmlFile();
+                      }
+                    },
+                    icon: const Icon(Icons.folder_open_rounded),
+                    tooltip: 'Open XML',
+                  )
+                else
+                  FilledButton.tonalIcon(
+                    onPressed: () {
+                      if (isBulkDataLoaded) {
+                        bulkNotifier.loadBulkXmlFile();
+                      } else {
+                        notifier.loadXmlFile();
+                      }
+                    },
+                    icon: const Icon(Icons.folder_open_rounded),
+                    label: const Text('Open XML'),
                   ),
-                ),
-
-                const SizedBox(width: 4.0),
+                const SizedBox(width: 8),
               ],
             ),
             drawer: const AppDrawer(),

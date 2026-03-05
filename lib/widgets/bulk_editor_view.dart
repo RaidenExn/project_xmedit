@@ -10,6 +10,8 @@ class BulkEditorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ResponsiveTwoPanel(
+      leftPanelWidth: 380,
+      maxWidth: 4200,
       leftPanel: Container(
         decoration: BoxDecoration(
           border: Border(

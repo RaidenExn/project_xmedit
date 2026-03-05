@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:project_xmedit/notifiers.dart';
-
+import 'package:project_xmedit/providers/bulk_claim_data_provider.dart';
+import 'package:project_xmedit/repositories/reference_data_repository.dart';
+import 'package:project_xmedit/services/preferences_service.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -41,6 +43,52 @@ class _AppDrawerState extends State<AppDrawer> {
         );
       }
     }
+  }
+
+  Future<void> _resetEverything() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset Everything?'),
+        content: const Text(
+          'This will clear loaded claim data, bulk data, recent files, and saved settings. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final claimNotifier = context.read<ClaimDataNotifier>();
+    final bulkNotifier = context.read<BulkClaimDataNotifier>();
+    final themeNotifier = context.read<ThemeNotifier>();
+
+    claimNotifier.clearData();
+    bulkNotifier.clearData();
+    await PreferencesService.clearAll();
+    ReferenceDataRepository().clearRuntimeCaches();
+
+    // Re-apply default visual settings immediately.
+    themeNotifier.setThemeMode(ThemeMode.system);
+    themeNotifier.changeSeedColor(Colors.green);
+
+    if (!mounted) return;
+    Navigator.of(context).pop(); // close drawer
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content:
+            Text('App reset complete. All settings and loaded data cleared.'),
+      ),
+    );
   }
 
   @override
@@ -90,6 +138,15 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
                 const SizedBox(height: 12),
                 _buildColorSelector(context, themeNotifier),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _resetEverything,
+                    icon: const Icon(Icons.restart_alt_rounded),
+                    label: const Text('Reset Everything'),
+                  ),
+                ),
 
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
