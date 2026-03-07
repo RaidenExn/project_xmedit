@@ -34,14 +34,7 @@ class EmptyStateView extends StatelessWidget {
             child: Ink(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 38),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    colors.surfaceContainerHigh,
-                    colors.secondaryContainer.withAlpha(70),
-                  ],
-                ),
+                color: colors.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: colors.outlineVariant.withAlpha(120),
@@ -63,14 +56,7 @@ class EmptyStateView extends StatelessWidget {
                     height: 78,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          colors.primaryContainer,
-                          colors.secondaryContainer,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: colors.primaryContainer,
                     ),
                     child: Icon(
                       icon,

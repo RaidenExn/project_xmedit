@@ -68,7 +68,8 @@ class AppContent extends StatelessWidget {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
+      dynamicSchemeVariant: DynamicSchemeVariant.expressive,
+      contrastLevel: 0.18,
     );
 
     final baseTextTheme = ThemeData(brightness: brightness).textTheme;
@@ -125,7 +126,9 @@ class AppContent extends StatelessWidget {
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: colorScheme.surfaceContainerLow.withAlpha(240),
+        color: brightness == Brightness.dark
+            ? colorScheme.surfaceContainer
+            : colorScheme.surfaceContainerLow.withAlpha(250),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
           side: BorderSide(color: colorScheme.outlineVariant.withAlpha(150)),
@@ -135,7 +138,7 @@ class AppContent extends StatelessWidget {
         filled: true,
         fillColor: brightness == Brightness.dark
             ? colorScheme.surfaceContainerHigh
-            : colorScheme.surfaceContainerLowest,
+            : colorScheme.surfaceContainerLow,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: colorScheme.outlineVariant),

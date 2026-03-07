@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:project_xmedit/database_helper.dart';
 import 'package:project_xmedit/notifiers.dart';
 import 'package:project_xmedit/providers/bulk_claim_data_provider.dart';
 import 'package:project_xmedit/repositories/reference_data_repository.dart';
@@ -71,24 +72,35 @@ class _AppDrawerState extends State<AppDrawer> {
     final claimNotifier = context.read<ClaimDataNotifier>();
     final bulkNotifier = context.read<BulkClaimDataNotifier>();
     final themeNotifier = context.read<ThemeNotifier>();
+    try {
+      claimNotifier.clearData();
+      bulkNotifier.clearData();
+      await PreferencesService.clearAll();
+      ReferenceDataRepository().clearRuntimeCaches();
+      await DatabaseHelper().resetToSeedDatabase();
+      await ReferenceDataRepository().warmup();
 
-    claimNotifier.clearData();
-    bulkNotifier.clearData();
-    await PreferencesService.clearAll();
-    ReferenceDataRepository().clearRuntimeCaches();
+      // Re-apply default visual settings immediately.
+      themeNotifier.setThemeMode(ThemeMode.system);
+      themeNotifier.changeSeedColor(ThemeNotifier.defaultSeedColor);
 
-    // Re-apply default visual settings immediately.
-    themeNotifier.setThemeMode(ThemeMode.system);
-    themeNotifier.changeSeedColor(Colors.green);
-
-    if (!mounted) return;
-    Navigator.of(context).pop(); // close drawer
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:
-            Text('App reset complete. All settings and loaded data cleared.'),
-      ),
-    );
+      if (!mounted) return;
+      Navigator.of(context).pop(); // close drawer
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('App reset complete. All settings and loaded data cleared.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Reset failed: $e'),
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
+        ),
+      );
+    }
   }
 
   @override

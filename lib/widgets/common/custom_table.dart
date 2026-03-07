@@ -10,14 +10,7 @@ class CustomTableHeader extends StatelessWidget {
         height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 14.0),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.surfaceContainerHigh,
-              Theme.of(context).colorScheme.surfaceContainer.withAlpha(220),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
         ),
         child: Row(

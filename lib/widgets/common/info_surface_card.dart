@@ -19,14 +19,7 @@ class InfoSurfaceCard extends StatelessWidget {
       margin: margin ?? const EdgeInsets.only(bottom: 10),
       padding: padding ?? const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.30),
-            theme.colorScheme.surfaceContainer.withValues(alpha: 0.20),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),

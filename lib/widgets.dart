@@ -67,14 +67,7 @@ class ClaimDataSection extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  colors.surfaceContainerHigh,
-                  colors.surfaceContainer.withAlpha(210),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: colors.surfaceContainerHigh,
               border: Border(
                 bottom: BorderSide(color: colors.outlineVariant.withAlpha(110)),
               ),

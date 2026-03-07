@@ -32,14 +32,7 @@ class ResponsiveTwoPanel extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.surfaceContainerLow,
-                        theme.colorScheme.surfaceContainer.withAlpha(220),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: theme.colorScheme.surfaceContainerLow,
                     borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(12)),
                     border: Border(

@@ -46,6 +46,7 @@ class BulkClaimDataNotifier extends ChangeNotifier {
 
   void setDispositionFlag(String value) {
     if (_bulkData == null) return;
+    if ((_bulkData!.dispositionFlag ?? 'PRODUCTION') == value) return;
 
     _bulkData!.dispositionFlag = value;
     // Update all claims
@@ -109,6 +110,7 @@ class BulkClaimDataNotifier extends ChangeNotifier {
   int get filteredClaimCount => claimListItems.length;
 
   void _setLoading(bool loading) {
+    if (_isLoading == loading) return;
     _isLoading = loading;
     notifyListeners();
   }
@@ -170,9 +172,6 @@ class BulkClaimDataNotifier extends ChangeNotifier {
         // Reset selection
         _selectedClaimIndices.clear();
         _lastSelectedClaimIndex = 0;
-        _selectedClaimIndices.clear();
-        _lastSelectedClaimIndex = 0;
-        // removed auto-selection of first claim
 
         onMessage?.call(
             'Bulk XML loaded successfully! ${_bulkData!.totalClaims} claims found.',
@@ -224,9 +223,6 @@ class BulkClaimDataNotifier extends ChangeNotifier {
       // Reset selection
       _selectedClaimIndices.clear();
       _lastSelectedClaimIndex = 0;
-      _selectedClaimIndices.clear();
-      _lastSelectedClaimIndex = 0;
-      // removed auto-selection of first claim
 
       onMessage?.call(
           'Bulk XML loaded successfully! ${_bulkData!.totalClaims} claims found.',
@@ -418,10 +414,8 @@ class BulkClaimDataNotifier extends ChangeNotifier {
     }
 
     _bulkData = _originalSnapshot!.clone();
-    _bulkData = _originalSnapshot!.clone();
     _undoStack.clear();
     _selectedClaimIndices.clear();
-    _lastSelectedClaimIndex = 0;
     _lastSelectedClaimIndex = 0;
     // removed auto-selection of first claim
 

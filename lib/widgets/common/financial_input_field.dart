@@ -6,6 +6,7 @@ import 'package:project_xmedit/widgets/validation_widgets.dart';
 class FinancialInputField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final String? difference;
   final ValidationError? validationError;
   final VoidCallback onChanged;
@@ -14,6 +15,7 @@ class FinancialInputField extends StatelessWidget {
     super.key,
     required this.label,
     required this.controller,
+    this.focusNode,
     required this.onChanged,
     this.difference,
     this.validationError,
@@ -39,6 +41,7 @@ class FinancialInputField extends StatelessWidget {
             height: 36,
             child: TextFormField(
               controller: controller,
+              focusNode: focusNode,
               onChanged: (_) => onChanged(),
               textAlign: TextAlign.right,
               style: theme.textTheme.bodyLarge?.copyWith(

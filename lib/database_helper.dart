@@ -391,4 +391,22 @@ class DatabaseHelper {
   Future<void> warmupCoreReferenceData() async {
     await database;
   }
+
+  Future<void> resetToSeedDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, _dbName);
+
+    final existing = _database;
+    if (existing != null && existing.isOpen) {
+      await existing.close();
+    }
+    _database = null;
+
+    if (await databaseExists(path)) {
+      await deleteDatabase(path);
+    }
+
+    await _ensureSeedDatabase(path);
+    _database = await _initDb();
+  }
 }

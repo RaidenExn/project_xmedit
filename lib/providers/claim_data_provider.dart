@@ -98,12 +98,14 @@ class ClaimDataNotifier extends ChangeNotifier {
   }
 
   void _setLoading(bool loading) {
+    if (_isLoading == loading) return;
     _isLoading = loading;
     notifyListeners();
   }
 
   void setGross(String value) {
     if (_claimData != null) {
+      if ((_claimData!.gross ?? '') == value) return;
       _claimData!.gross = value;
       _checkAllBalances();
       _validate();
@@ -113,6 +115,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void setPatientShare(String value) {
     if (_claimData != null) {
+      if ((_claimData!.patientShare ?? '') == value) return;
       _claimData!.patientShare = value;
       _checkAllBalances();
       _validate();
@@ -122,6 +125,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void setNet(String value) {
     if (_claimData != null) {
+      if ((_claimData!.net ?? '') == value) return;
       _claimData!.net = value;
       _checkAllBalances();
       _validate();
@@ -257,6 +261,7 @@ class ClaimDataNotifier extends ChangeNotifier {
       final claimData = await _repository.parseXml(xmlString);
 
       _claimData = claimData;
+      shouldRenameFile = true;
       _originalXmlString = xmlString;
       _originalFilePath = filePath;
       // Store original activities for comparison
@@ -397,9 +402,12 @@ class ClaimDataNotifier extends ChangeNotifier {
   void clearData() {
     _activityDescriptionRefreshDebounce?.cancel();
     _claimData = null;
+    _originalXmlString = null;
+    _originalFilePath = null;
+    _originalPatientShare = 0.0;
     _originalDiagnoses = [];
     _originalActivities = [];
-    shouldRenameFile = false;
+    shouldRenameFile = true;
     grossDifference = "";
     netDifference = "";
     isDiagnosisEditingEnabled = false;
@@ -585,6 +593,7 @@ class ClaimDataNotifier extends ChangeNotifier {
 
   void setDispositionFlag(String value) {
     if (_claimData == null) return;
+    if ((_claimData!.dispositionFlag ?? 'PRODUCTION') == value) return;
     _claimData!.dispositionFlag = value;
     _validate();
     notifyListeners();

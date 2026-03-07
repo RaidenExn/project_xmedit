@@ -153,24 +153,9 @@ class _ControlsResubmissionCardState extends State<ControlsResubmissionCard> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isSelected
-                ? [
-                    theme.colorScheme.secondaryContainer,
-                    theme.colorScheme.primaryContainer.withAlpha(190),
-                  ]
-                : [
-                    theme.colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.5),
-                    theme.colorScheme.surfaceContainer.withValues(alpha: 0.2),
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           color: isSelected
-              ? null
-              : theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.3),
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected

@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:project_xmedit/services/preferences_service.dart';
 
 class ThemeNotifier extends ChangeNotifier {
+  static const Color defaultSeedColor = Color(0xFF2B5FA7);
+
   ThemeMode _themeMode = ThemeMode.system;
-  Color _seedColor = Colors.green;
+  Color _seedColor = defaultSeedColor;
 
   ThemeMode get themeMode => _themeMode;
   Color get seedColor => _seedColor;
 
-  final List<Color> _availableColors = [
-    Colors.green,
-    Colors.blue,
-    Colors.red,
-    Colors.orange,
-    Colors.purple,
-    Colors.teal,
+  final List<Color> _availableColors = const [
+    Color(0xFF2B5FA7), // Sapphire
+    Color(0xFF1F7A5C), // Emerald
+    Color(0xFF8B3D4F), // Bordeaux
+    Color(0xFF5A46A6), // Indigo
+    Color(0xFFA06321), // Amber Bronze
+    Color(0xFF0F7B7B), // Ocean Teal
   ];
   List<Color> get availableColors => _availableColors;
 

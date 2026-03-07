@@ -14,6 +14,9 @@ class _TotalsCardState extends State<TotalsCard> {
   late TextEditingController _grossController;
   late TextEditingController _patientShareController;
   late TextEditingController _netController;
+  late FocusNode _grossFocus;
+  late FocusNode _patientShareFocus;
+  late FocusNode _netFocus;
 
   @override
   void initState() {
@@ -21,6 +24,9 @@ class _TotalsCardState extends State<TotalsCard> {
     _grossController = TextEditingController();
     _patientShareController = TextEditingController();
     _netController = TextEditingController();
+    _grossFocus = FocusNode();
+    _patientShareFocus = FocusNode();
+    _netFocus = FocusNode();
   }
 
   @override
@@ -28,49 +34,11 @@ class _TotalsCardState extends State<TotalsCard> {
     _grossController.dispose();
     _patientShareController.dispose();
     _netController.dispose();
+    _grossFocus.dispose();
+    _patientShareFocus.dispose();
+    _netFocus.dispose();
     super.dispose();
   }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncControllers();
-  }
-
-  void _syncControllers() {
-    final notifier = context.watch<ClaimDataNotifier>();
-    final data = notifier.claimData;
-    if (data == null) return;
-
-    if (_grossController.text != data.gross) {
-      // Only update if not focused? Or always?
-      // For simplicity, we check if the value is actually different to avoid cursor jumps if possible,
-      // but typically full sync on external change is needed.
-      // However, context.watch triggers on every keystroke if we implement update logic in onChanged.
-      // So we must check if the change originated from us.
-      // We can check if the widget is focused.
-
-      // actually, simpler: use the values from notifier for initial/external updates.
-      // But if we are typing, we are the source of truth transiently.
-
-      // Let's just set text if it differs significantly or we are not the ones editing.
-      // But we don't know who is editing.
-    }
-  }
-
-  // Actually, keeping controllers in Notifier was solving this sync problem.
-  // The correct pattern for "Unidirectional Data Flow" with Flutter TextFields is tricky.
-  // 1. Controller holds State.
-  // 2. onChanged -> Action -> Store Update -> Notify.
-  // 3. Widget rebuilds.
-  // 4. Controller.text = Store.value.
-  // This causes cursor reset to end unless carefully handled.
-
-  // Given the complexity and "Simplification" goal, maybe just moving logic to "view_models" is better than strict UDF here.
-
-  // BUT, let's look at `_updateControllers` in Notifier. It only sets text when loading XML.
-  // It does NOT set text on every `notifyListeners`.
-  // So I can replicate this.
 
   @override
   Widget build(BuildContext context) {
@@ -84,15 +52,15 @@ class _TotalsCardState extends State<TotalsCard> {
     // If notifier updates us back, it should match what we just sent.
     if (notifier.claimData != null) {
       if (_grossController.text != notifier.claimData!.gross &&
-          !_grossController.selection.isValid) {
+          !_grossFocus.hasFocus) {
         _grossController.text = notifier.claimData!.gross ?? '';
       }
       if (_patientShareController.text != notifier.claimData!.patientShare &&
-          !_patientShareController.selection.isValid) {
+          !_patientShareFocus.hasFocus) {
         _patientShareController.text = notifier.claimData!.patientShare ?? '';
       }
       if (_netController.text != notifier.claimData!.net &&
-          !_netController.selection.isValid) {
+          !_netFocus.hasFocus) {
         _netController.text = notifier.claimData!.net ?? '';
       }
     }
@@ -103,6 +71,7 @@ class _TotalsCardState extends State<TotalsCard> {
         FinancialInputField(
           label: 'Gross:',
           controller: _grossController,
+          focusNode: _grossFocus,
           difference: notifier.grossDifference,
           validationError: validationResult?.getFirstErrorForField('gross'),
           onChanged: () {
@@ -114,6 +83,7 @@ class _TotalsCardState extends State<TotalsCard> {
         FinancialInputField(
           label: 'PatientShare:',
           controller: _patientShareController,
+          focusNode: _patientShareFocus,
           validationError:
               validationResult?.getFirstErrorForField('patientShare'),
           onChanged: () {
@@ -125,6 +95,7 @@ class _TotalsCardState extends State<TotalsCard> {
         FinancialInputField(
           label: 'Net:',
           controller: _netController,
+          focusNode: _netFocus,
           difference: notifier.netDifference,
           validationError: validationResult?.getFirstErrorForField('net'),
           onChanged: () {
@@ -153,13 +124,9 @@ class _TotalsCardState extends State<TotalsCard> {
   }
 
   void _updateNotifier(ClaimDataNotifier notifier) {
-    if (notifier.claimData != null) {
-      // Direct update for now, ideally use setters
-      notifier.claimData!.gross = _grossController.text;
-      notifier.claimData!.patientShare = _patientShareController.text;
-      notifier.claimData!.net = _netController.text;
-      notifier
-          .checkBalances(); // This triggers notifyListeners() which might re-trigger build
-    }
+    if (notifier.claimData == null) return;
+    notifier.setGross(_grossController.text);
+    notifier.setPatientShare(_patientShareController.text);
+    notifier.setNet(_netController.text);
   }
 }
